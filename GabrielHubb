@@ -1,12 +1,12 @@
 -- ==========================================
--- GABRIEL XITER - WINDUI PRO (DUELOS)
+-- GABRIEL XITER - WINDUI PRO (HITBOX REAL)
 -- ==========================================
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 if not WindUI then
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Error",
-        Text = "No se pudo cargar WindUI. Revisa tu conexión.",
+        Text = "No se pudo cargar WindUI.",
     })
     return
 end
@@ -16,15 +16,12 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
--- Variables
 local espEnabled = false
 local espObjects = {}
 local hitboxEnabled = false
-local hitboxInvisible = false
-local hitboxSize = 5
-local hitboxData = {}
+local hitboxSize = 3 -- Multiplicador (3 = triple de grande)
+local originalSizes = {} -- Para guardar el tamaño original
 
--- Crear la ventana principal
 local Window = WindUI:CreateWindow({
     Title = "Gabriel Xiter",
     Icon = "swords",
@@ -34,15 +31,10 @@ local Window = WindUI:CreateWindow({
     Theme = "Dark",
     Transparent = true,
     ThemeSettings = {
-        Accent = Color3.fromRGB(255, 80, 150), -- Tu color rosa característico
+        Accent = Color3.fromRGB(255, 80, 150),
         Background = Color3.fromRGB(22, 22, 22)
     },
-    OpenButton = {
-        Title = "Gabriel Xiter",
-        Icon = "swords",
-        Enabled = true,
-        Draggable = true,
-    }
+    OpenButton = { Title = "Gabriel Xiter", Icon = "swords", Enabled = true, Draggable = true }
 })
 
 -- ==========================================
@@ -52,109 +44,111 @@ local VisualTab = Window:Tab({ Title = "Visuales", Icon = "eye" })
 
 VisualTab:Toggle({
     Title = "ESP Box (Highlight)",
-    Desc = "Muestra un cuadro brillante alrededor de los enemigos.",
     Default = false,
     Callback = function(state)
         espEnabled = state
         if not state then
-            for _, obj in pairs(espObjects) do
-                if obj then obj:Destroy() end
-            end
+            for _, obj in pairs(espObjects) do if obj then obj:Destroy() end end
             espObjects = {}
         end
     end
 })
 
--- Lógica del ESP
 RunService.RenderStepped:Connect(function()
     if not espEnabled then return end
-    
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
-            if not espObjects[p] then
-                local highlight = Instance.new("Highlight")
-                highlight.Adornee = p.Character
-                highlight.FillColor = Color3.fromRGB(255, 80, 150)
-                highlight.OutlineColor = Color3.fromRGB(255, 80, 150)
-                highlight.FillTransparency = 0.5
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlight.Parent = CoreGui
-                espObjects[p] = highlight
+            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                if not espObjects[p] then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Adornee = p.Character
+                    highlight.FillColor = Color3.fromRGB(255, 80, 150)
+                    highlight.OutlineColor = Color3.fromRGB(255, 80, 150)
+                    highlight.FillTransparency = 0.5
+                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    highlight.Parent = CoreGui
+                    espObjects[p] = highlight
+                end
             end
         end
     end
 end)
 
 -- ==========================================
--- PESTAÑA: HITBOX
+-- PESTAÑA: HITBOX (MULTIPLICADOR REAL)
 -- ==========================================
 local HitboxTab = Window:Tab({ Title = "Hitbox", Icon = "crosshair" })
 
 HitboxTab:Toggle({
-    Title = "Activar Hitbox",
-    Desc = "Crea un cuadro para facilitar los tiros.",
+    Title = "Activar Hitbox Real",
+    Desc = "Agranda el cuerpo del enemigo para que las balas conecten.",
     Default = false,
     Callback = function(state)
         hitboxEnabled = state
+        -- Si se apaga, devolvemos los cuerpos a la normalidad
         if not state then
-            for _, data in pairs(hitboxData) do
-                if data.Box then data.Box:Destroy() end
+            for p, data in pairs(originalSizes) do
+                if p.Character then
+                    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                    local torso = p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
+                    if hrp then hrp.Size = data.hrpSize end
+                    if torso then torso.Size = data.torsoSize end
+                end
             end
-            hitboxData = {}
+            originalSizes = {}
         end
     end
 })
 
-HitboxTab:Toggle({
-    Title = "Hitbox Invisible",
-    Desc = "Hace que el hitbox no se vea.",
-    Default = false,
-    Callback = function(state)
-        hitboxInvisible = state
-    end
-})
-
 HitboxTab:Slider({
-    Title = "Tamaño",
-    Desc = "Tamaño de la caja.",
-    Step = 1,
-    Value = { Min = 1, Max = 20, Default = 5 },
+    Title = "Multiplicador de Tamaño",
+    Desc = "2 = Doble de grande. 3 = Triple.",
+    Step = 0.5,
+    Value = { Min = 1, Max = 10, Default = 3 },
     Callback = function(value)
         hitboxSize = value
     end
 })
 
--- Lógica de la Hitbox
+-- Lógica del Hitbox Real (Anti-Congelamiento)
 RunService.Heartbeat:Connect(function()
     if not hitboxEnabled then return end
 
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
             local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-            local humanoid = p.Character:FindFirstChild("Humanoid")
+            local torso = p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
+            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
             
-            if hrp and humanoid and humanoid.Health > 0 then
-                if not hitboxData[p] then
-                    local box = Instance.new("Part")
-                    box.Name = "GabrielHitbox"
-                    box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    box.Transparency = hitboxInvisible and 1 or 0.5
-                    box.Color = Color3.fromRGB(255, 80, 150)
-                    box.Material = Enum.Material.Neon
-                    box.CanCollide = false
-                    box.CanQuery = true
-                    box.Massless = true
-                    box.Anchored = true 
-                    box.Parent = workspace
-                    
-                    hitboxData[p] = {Box = box}
+            if hrp and torso and humanoid and humanoid.Health > 0 then
+                -- Guardamos el tamaño original (solo la primera vez)
+                if not originalSizes[p] then
+                    originalSizes[p] = {
+                        hrpSize = hrp.Size,
+                        torsoSize = torso.Size
+                    }
                 end
                 
-                local data = hitboxData[p]
-                if data and data.Box and data.Box.Parent then
-                    data.Box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    data.Box.Transparency = hitboxInvisible and 1 or 0.5
-                    data.Box.CFrame = hrp.CFrame 
+                local orig = originalSizes[p]
+                
+                -- 1. Agrandamos el Torso (Para que se vea grande, pero sin estirar la Y para no congelar)
+                torso.Size = Vector3.new(
+                    orig.torsoSize.X * hitboxSize,
+                    orig.torsoSize.Y, -- La altura se queda igual
+                    orig.torsoSize.Z * hitboxSize
+                )
+                
+                -- 2. Agrandamos el HumanoidRootPart (Que es el que detecta las balas del servidor)
+                hrp.Size = Vector3.new(
+                    orig.hrpSize.X * hitboxSize,
+                    orig.hrpSize.Y,
+                    orig.hrpSize.Z * hitboxSize
+                )
+                
+                -- Hacemos el torso invisible si el multiplicador es muy grande para no tapar la pantalla
+                if hitboxSize > 2 then
+                    torso.Transparency = 1
                 end
             end
         end
@@ -165,20 +159,23 @@ end)
 -- PESTAÑA: AJUSTES
 -- ==========================================
 local SettingsTab = Window:Tab({ Title = "Ajustes", Icon = "settings" })
-
 SettingsTab:Button({
     Title = "Destruir Script",
-    Desc = "Cierra la interfaz y apaga todo.",
     Callback = function()
         Window:Destroy()
         for _, obj in pairs(espObjects) do if obj then obj:Destroy() end end
-        for _, data in pairs(hitboxData) do if data.Box then data.Box:Destroy() end end
+        for p, data in pairs(originalSizes) do
+            if p.Character then
+                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then hrp.Size = data.hrpSize end
+            end
+        end
     end
 })
 
 WindUI:Notify({
     Title = "Gabriel Xiter",
-    Content = "Script cargado correctamente.",
+    Content = "Hitbox Real cargada.",
     Duration = 5,
     Icon = "check"
 })
