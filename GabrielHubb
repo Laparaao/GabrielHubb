@@ -1,162 +1,156 @@
 -- ==========================================
--- GABRIEL XITER - VERSIÓN SEGURA (SIN HOOKS)
+-- GABRIEL XITER - HITBOX CUADRADA (SIN LIBRERIAS)
 -- ==========================================
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
-
-if not WindUI then
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Error",
-        Text = "No se pudo cargar WindUI.",
-    })
-    return
-end
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-local espEnabled, hitboxEnabled = false, false
-local hitboxSize = 3
-local originalSizes = {}
-local espObjects = {}
+-- Variables
+local hitboxEnabled = false
+local hitboxSize = 5
+local hitboxColor = Color3.fromRGB(255, 50, 50) -- Rojo como en tu foto
+local ghostHitboxes = {}
 
 local aimbotEnabled = false
-local autoShootEnabled = false
-local aimbotTargetPart = "Head"
-local enemyCache = {}
-
-local Window = WindUI:CreateWindow({
-    Title = "Gabriel Xiter",
-    Icon = "crosshair",
-    Author = "Gold Edition",
-    Folder = "GabrielXiter",
-    Size = UDim2.fromOffset(580, 460),
-    Theme = "Dark",
-    Transparent = true,
-    ThemeSettings = {
-        Accent = Color3.fromHex("#D4AF37"),
-        Background = Color3.fromRGB(22, 22, 22)
-    },
-    OpenButton = { Title = "Gabriel Xiter", Icon = "crosshair", Enabled = true, Draggable = true }
-})
 
 -- ==========================================
--- VISUALES (ESP)
+-- INTERFAZ BÁSICA (PARA QUE NO FALLE)
 -- ==========================================
-local VisualTab = Window:Tab({ Title = "Visuales", Icon = "eye" })
-VisualTab:Toggle({
-    Title = "ESP Box (Highlight)",
-    Default = false,
-    Callback = function(state)
-        espEnabled = state
-        if not state then
-            for _, obj in pairs(espObjects) do if obj then obj:Destroy() end end
-            espObjects = {}
-        end
-    end
-})
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GabrielXiter_UI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
 
-RunService.RenderStepped:Connect(function()
-    if not espEnabled then return end
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                if not espObjects[p] then
-                    local highlight = Instance.new("Highlight")
-                    highlight.Adornee = p.Character
-                    highlight.FillColor = Color3.fromHex("#D4AF37")
-                    highlight.OutlineColor = Color3.fromHex("#D4AF37")
-                    highlight.FillTransparency = 0.5
-                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                    highlight.Parent = CoreGui
-                    espObjects[p] = highlight
-                end
-            end
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 250, 0, 200)
+Frame.Position = UDim2.new(0, 20, 0, 20)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Title.Text = "Gabriel Xiter"
+Title.TextColor3 = Color3.fromRGB(255, 50, 50)
+Title.Font = Enum.Font.GothamBold
+Title.Parent = Frame
+
+local HitboxBtn = Instance.new("TextButton")
+HitboxBtn.Size = UDim2.new(0, 200, 0, 30)
+HitboxBtn.Position = UDim2.new(0, 25, 0, 50)
+HitboxBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+HitboxBtn.Text = "Hitbox: OFF"
+HitboxBtn.TextColor3 = Color3.new(1, 1, 1)
+HitboxBtn.Parent = Frame
+
+local SizeLabel = Instance.new("TextLabel")
+SizeLabel.Size = UDim2.new(0, 200, 0, 20)
+SizeLabel.Position = UDim2.new(0, 25, 0, 90)
+SizeLabel.BackgroundTransparency = 1
+SizeLabel.Text = "Tamaño: 5"
+SizeLabel.TextColor3 = Color3.new(1, 1, 1)
+SizeLabel.Parent = Frame
+
+local SizeMinus = Instance.new("TextButton")
+SizeMinus.Size = UDim2.new(0, 45, 0, 25)
+SizeMinus.Position = UDim2.new(0, 25, 0, 120)
+SizeMinus.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SizeMinus.Text = "-"
+SizeMinus.TextColor3 = Color3.new(1, 1, 1)
+SizeMinus.Parent = Frame
+
+local SizePlus = Instance.new("TextButton")
+SizePlus.Size = UDim2.new(0, 45, 0, 25)
+SizePlus.Position = UDim2.new(0, 80, 0, 120)
+SizePlus.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SizePlus.Text = "+"
+SizePlus.TextColor3 = Color3.new(1, 1, 1)
+SizePlus.Parent = Frame
+
+local AimbotBtn = Instance.new("TextButton")
+AimbotBtn.Size = UDim2.new(0, 200, 0, 30)
+AimbotBtn.Position = UDim2.new(0, 25, 0, 160)
+AimbotBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+AimbotBtn.Text = "Aimbot: OFF"
+AimbotBtn.TextColor3 = Color3.new(1, 1, 1)
+AimbotBtn.Parent = Frame
+
+-- Lógica de Botones
+HitboxBtn.MouseButton1Click:Connect(function()
+    hitboxEnabled = not hitboxEnabled
+    HitboxBtn.Text = "Hitbox: " .. (hitboxEnabled and "ON" or "OFF")
+    HitboxBtn.BackgroundColor3 = hitboxEnabled and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(40, 40, 40)
+    
+    if not hitboxEnabled then
+        for p, box in pairs(ghostHitboxes) do
+            if box then box:Destroy() end
         end
+        ghostHitboxes = {}
     end
 end)
 
--- ==========================================
--- HITBOX
--- ==========================================
-local HitboxTab = Window:Tab({ Title = "Hitbox", Icon = "crosshair" })
-HitboxTab:Toggle({
-    Title = "Activar Hitbox Real",
-    Default = false,
-    Callback = function(state)
-        hitboxEnabled = state
-        if not state then
-            for p, data in pairs(originalSizes) do
-                if p.Character then
-                    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                    local torso = p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
-                    if hrp then hrp.Size = data.hrpSize end
-                    if torso then torso.Size = data.torsoSize end
-                end
-            end
-            originalSizes = {}
-        end
-    end
-})
+SizeMinus.MouseButton1Click:Connect(function()
+    hitboxSize = math.max(1, hitboxSize - 1)
+    SizeLabel.Text = "Tamaño: " .. hitboxSize
+end)
 
-HitboxTab:Slider({
-    Title = "Tamaño",
-    Step = 0.5,
-    Value = { Min = 1, Max = 10, Default = 3 },
-    Callback = function(value) hitboxSize = value end
-})
+SizePlus.MouseButton1Click:Connect(function()
+    hitboxSize = math.min(20, hitboxSize + 1)
+    SizeLabel.Text = "Tamaño: " .. hitboxSize
+end)
 
+AimbotBtn.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    AimbotBtn.Text = "Aimbot: " .. (aimbotEnabled and "ON" or "OFF")
+    AimbotBtn.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(40, 40, 40)
+end)
+
+-- ==========================================
+-- LÓGICA DE LA HITBOX CUADRADA
+-- ==========================================
 RunService.Heartbeat:Connect(function()
     if not hitboxEnabled then return end
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
             local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-            local torso = p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
             local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
-            if hrp and torso and humanoid and humanoid.Health > 0 then
-                if not originalSizes[p] then
-                    originalSizes[p] = { hrpSize = hrp.Size, torsoSize = torso.Size }
+            
+            if hrp and humanoid and humanoid.Health > 0 then
+                if not ghostHitboxes[p] or not ghostHitboxes[p].Parent then
+                    local box = Instance.new("Part")
+                    box.Name = "BoxHitbox"
+                    box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                    box.Transparency = 0.5 -- Semi-transparente para que lo veas
+                    box.Color = hitboxColor
+                    box.Material = Enum.Material.Neon
+                    box.CanCollide = false
+                    box.CanQuery = true
+                    box.CanTouch = true
+                    box.Massless = true
+                    box.Anchored = true 
+                    box.Parent = workspace
+                    
+                    ghostHitboxes[p] = box
                 end
-                local orig = originalSizes[p]
-                torso.Size = Vector3.new(orig.torsoSize.X * hitboxSize, orig.torsoSize.Y, orig.torsoSize.Z * hitboxSize)
-                hrp.Size = Vector3.new(orig.hrpSize.X * hitboxSize, orig.hrpSize.Y, orig.hrpSize.Z * hitboxSize)
-                if hitboxSize > 2 then torso.Transparency = 1 end
+                
+                local box = ghostHitboxes[p]
+                if box then
+                    box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                    box.CFrame = hrp.CFrame 
+                end
             end
         end
     end
 end)
 
 -- ==========================================
--- COMBAT (AIMBOT + AUTO SHOOT)
+-- LÓGICA DEL AIMBOT
 -- ==========================================
-local CombatTab = Window:Tab({ Title = "Combat", Icon = "target" })
-
-CombatTab:Dropdown({
-    Title = "Parte del Cuerpo",
-    Values = {"Head", "UpperTorso", "HumanoidRootPart"},
-    Value = "Head",
-    Callback = function(val) aimbotTargetPart = val end
-})
-
-CombatTab:Toggle({
-    Title = "Aimbot (Camlock)",
-    Desc = "Mueve tu cámara al enemigo.",
-    Default = false,
-    Callback = function(state) aimbotEnabled = state end
-})
-
-CombatTab:Toggle({
-    Title = "Auto Shoot",
-    Desc = "Dispara solo al estar apuntando.",
-    Default = false,
-    Callback = function(state) autoShootEnabled = state end
-})
-
--- LÓGICA DE AIMBOT (Movimiento de cámara)
 RunService.RenderStepped:Connect(function()
     if not aimbotEnabled then return end
     local char = LocalPlayer.Character
@@ -170,14 +164,14 @@ RunService.RenderStepped:Connect(function()
         if p ~= LocalPlayer and p.Character then
             local enemyHum = p.Character:FindFirstChildOfClass("Humanoid")
             if enemyHum and enemyHum.Health > 0 then
-                local part = p.Character:FindFirstChild(aimbotTargetPart)
-                if part then
-                    local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                local head = p.Character:FindFirstChild("Head")
+                if head then
+                    local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
                     if onScreen then
                         local dist = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).Magnitude
                         if dist < shortestDist then
                             shortestDist = dist
-                            closestTarget = part
+                            closestTarget = head
                         end
                     end
                 end
@@ -187,37 +181,12 @@ RunService.RenderStepped:Connect(function()
 
     if closestTarget then
         Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, closestTarget.Position)
-        
-        if autoShootEnabled then
-            local tool = char:FindFirstChildOfClass("Tool")
-            if tool then
-                pcall(function() tool:Activate() end)
-            end
-        end
     end
 end)
 
--- ==========================================
--- AJUSTES
--- ==========================================
-local SettingsTab = Window:Tab({ Title = "Ajustes", Icon = "settings" })
-SettingsTab:Button({
-    Title = "Destruir Script",
-    Callback = function()
-        Window:Destroy()
-        for _, obj in pairs(espObjects) do if obj then obj:Destroy() end end
-        for p, data in pairs(originalSizes) do
-            if p.Character then
-                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then hrp.Size = data.hrpSize end
-            end
-        end
+Players.PlayerRemoving:Connect(function(p)
+    if ghostHitboxes[p] then
+        ghostHitboxes[p]:Destroy()
+        ghostHitboxes[p] = nil
     end
-})
-
-WindUI:Notify({
-    Title = "Gabriel Xiter",
-    Content = "Script cargado (Modo Seguro).",
-    Duration = 5,
-    Icon = "check"
-})
+end)
