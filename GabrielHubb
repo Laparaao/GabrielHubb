@@ -1,5 +1,5 @@
 -- ==========================================
--- GABRIEL XITER - DUELOS (HITBOX VISIBLE)
+-- GABRIEL XITER - UI NEXUS (CON FUNCIONES)
 -- ==========================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,7 +9,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Limpiar UI vieja
 for _, gui in pairs(PlayerGui:GetChildren()) do
-    if gui.Name == "GabrielXiter" then gui:Destroy() end
+    if gui.Name == "GabrielXiter" or gui.Name == "NexusClone" then gui:Destroy() end
 end
 
 local Colors = {
@@ -19,7 +19,7 @@ local Colors = {
     Input = Color3.fromRGB(18, 18, 18),
     Text = Color3.fromRGB(220, 220, 220),
     TextDim = Color3.fromRGB(120, 120, 120),
-    Accent = Color3.fromRGB(255, 80, 150),
+    Accent = Color3.fromRGB(255, 80, 150), -- Rosa Synergy
     Green = Color3.fromRGB(0, 255, 110)
 }
 
@@ -30,17 +30,7 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.DisplayOrder = 99999
 ScreenGui.Parent = PlayerGui
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.fromOffset(750, 450)
-MainFrame.Position = UDim2.new(0.5, -375, 0.5, -225)
-MainFrame.BackgroundColor3 = Colors.Background
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
-local UICorner = Instance.new("UICorner") UICorner.CornerRadius = UDim.new(0, 8) UICorner.Parent = MainFrame
-
--- Sistema de clics
+-- SISTEMA DE CLICKS (BYPASS ANTI-CHEAT)
 local buttons = {}
 local function registerButton(btn, callback)
     table.insert(buttons, {btn = btn, callback = callback})
@@ -64,6 +54,17 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+-- Ventana Principal
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.fromOffset(750, 450)
+MainFrame.Position = UDim2.new(0.5, -375, 0.5, -225)
+MainFrame.BackgroundColor3 = Colors.Background
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+local UICorner = Instance.new("UICorner") UICorner.CornerRadius = UDim.new(0, 8) UICorner.Parent = MainFrame
+
 -- Barra Superior
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 35)
@@ -75,7 +76,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 200, 1, 0)
 Title.Position = UDim2.fromOffset(15, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "||||| Gabriel Xiter [Duelos]"
+Title.Text = "||||| Gabriel Xiter"
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.TextColor3 = Colors.Accent
@@ -136,11 +137,16 @@ local function createTab(text, yPos)
     return btn
 end
 
-createCategory("VISUAL", 10)
-local tabPlayers = createTab("ESP Players", 35)
-local tabHitbox = createTab("Hitbox", 70)
+createCategory("COMBAT", 10)
+local tabAim = createTab("Aim-Assist", 35)
+local tabSilent = createTab("Silent-Aim", 70)
+local tabTrigger = createTab("Trigger-Bot", 105)
 
--- PANELES
+createCategory("VISUAL", 145)
+local tabPlayers = createTab("Players (ESP)", 170)
+local tabHitbox = createTab("Hitbox", 205)
+
+-- PANELES (Páginas)
 local CenterPanel = Instance.new("Frame")
 CenterPanel.Size = UDim2.new(0, 350, 1, -45)
 CenterPanel.Position = UDim2.new(0, 190, 0, 40)
@@ -148,6 +154,7 @@ CenterPanel.BackgroundColor3 = Colors.Panel
 CenterPanel.Parent = MainFrame
 local CenterCorner = Instance.new("UICorner") CenterCorner.CornerRadius = UDim.new(0, 8) CenterCorner.Parent = CenterPanel
 
+-- Función para crear páginas
 local function createPage(name)
     local page = Instance.new("Frame")
     page.Name = name
@@ -158,6 +165,7 @@ local function createPage(name)
     return page
 end
 
+local pageConfig = createPage("ConfigPage")
 local pagePlayers = createPage("PlayersPage")
 local pageHitbox = createPage("HitboxPage")
 
@@ -171,7 +179,23 @@ end
 registerButton(tabPlayers, function() switchPage(pagePlayers) end)
 registerButton(tabHitbox, function() switchPage(pageHitbox) end)
 
--- Función genérica de Toggle
+-- ==========================================
+-- PÁGINA: ESP PLAYERS
+-- ==========================================
+local TitlePlayers = Instance.new("TextLabel")
+TitlePlayers.Size = UDim2.new(1, -20, 0, 30)
+TitlePlayers.Position = UDim2.fromOffset(10, 10)
+TitlePlayers.BackgroundTransparency = 1
+TitlePlayers.Text = "PLAYER MODS (ESP)"
+TitlePlayers.Font = Enum.Font.GothamBold
+TitlePlayers.TextSize = 11
+TitlePlayers.TextColor3 = Colors.TextDim
+TitlePlayers.TextXAlignment = Enum.TextXAlignment.Left
+TitlePlayers.Parent = pagePlayers
+
+local espEnabled = false
+local espObjects = {}
+
 local function createToggle(parent, text, yPos, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -20, 0, 30)
@@ -191,35 +215,19 @@ local function createToggle(parent, text, yPos, callback)
         btn.TextColor3 = isOn and Colors.Green or Colors.Text
         callback(isOn)
     end)
+    return btn
 end
-
--- ==========================================
--- PÁGINA: ESP PLAYERS
--- ==========================================
-local TitlePlayers = Instance.new("TextLabel")
-TitlePlayers.Size = UDim2.new(1, -20, 0, 30)
-TitlePlayers.Position = UDim2.fromOffset(10, 10)
-TitlePlayers.BackgroundTransparency = 1
-TitlePlayers.Text = "ESP SETTINGS"
-TitlePlayers.Font = Enum.Font.GothamBold
-TitlePlayers.TextSize = 11
-TitlePlayers.TextColor3 = Colors.TextDim
-TitlePlayers.TextXAlignment = Enum.TextXAlignment.Left
-TitlePlayers.Parent = pagePlayers
-
-local espEnabled = false
-local espObjects = {}
 
 createToggle(pagePlayers, "ESP Box (Highlight)", 40, function(state) espEnabled = state end)
 
+-- Lógica ESP
 RunService.RenderStepped:Connect(function()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
-            local character = player.Character
             if espEnabled then
                 if not espObjects[player] then
                     local highlight = Instance.new("Highlight")
-                    highlight.Adornee = character
+                    highlight.Adornee = player.Character
                     highlight.FillColor = Colors.Accent
                     highlight.OutlineColor = Colors.Accent
                     highlight.FillTransparency = 0.5
@@ -238,7 +246,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ==========================================
--- PÁGINA: HITBOX (VISIBLE)
+-- PÁGINA: HITBOX
 -- ==========================================
 local TitleHitbox = Instance.new("TextLabel")
 TitleHitbox.Size = UDim2.new(1, -20, 0, 30)
@@ -251,17 +259,18 @@ TitleHitbox.TextColor3 = Colors.TextDim
 TitleHitbox.TextXAlignment = Enum.TextXAlignment.Left
 TitleHitbox.Parent = pageHitbox
 
-local hitboxEnabled = false
-local hitboxSize = 5
-local hitboxData = {}
+local u6, u7 = false, false
+local n1 = 5
+local t1 = {}
 
-createToggle(pageHitbox, "Hitbox Cuadrada", 40, function(state) hitboxEnabled = state end)
+createToggle(pageHitbox, "Hitbox Visible", 40, function(state) u6 = state; if state then u7 = false end end)
+createToggle(pageHitbox, "Hitbox Invisible", 80, function(state) u7 = state; if state then u6 = false end end)
 
 local sizeLabel = Instance.new("TextLabel")
 sizeLabel.Size = UDim2.new(1, -20, 0, 20)
-sizeLabel.Position = UDim2.fromOffset(10, 80)
+sizeLabel.Position = UDim2.fromOffset(10, 120)
 sizeLabel.BackgroundTransparency = 1
-sizeLabel.Text = "Tamaño: " .. hitboxSize
+sizeLabel.Text = "Tamaño Hitbox: " .. n1
 sizeLabel.Font = Enum.Font.Gotham
 sizeLabel.TextSize = 12
 sizeLabel.TextColor3 = Colors.TextDim
@@ -270,50 +279,45 @@ sizeLabel.Parent = pageHitbox
 
 local btnMinus = Instance.new("TextButton")
 btnMinus.Size = UDim2.fromOffset(50, 25)
-btnMinus.Position = UDim2.fromOffset(10, 105)
+btnMinus.Position = UDim2.fromOffset(10, 145)
 btnMinus.BackgroundColor3 = Colors.Input
 btnMinus.Text = "-"
 btnMinus.TextColor3 = Colors.Text
 btnMinus.Parent = pageHitbox
 local c1 = Instance.new("UICorner") c1.CornerRadius = UDim.new(0, 4) c1.Parent = btnMinus
 registerButton(btnMinus, function()
-    hitboxSize = math.max(1, hitboxSize - 1)
-    sizeLabel.Text = "Tamaño: " .. hitboxSize
+    n1 = math.max(1, n1 - 1)
+    sizeLabel.Text = "Tamaño Hitbox: " .. n1
 end)
 
 local btnPlus = Instance.new("TextButton")
 btnPlus.Size = UDim2.fromOffset(50, 25)
-btnPlus.Position = UDim2.fromOffset(70, 105)
+btnPlus.Position = UDim2.fromOffset(70, 145)
 btnPlus.BackgroundColor3 = Colors.Input
 btnPlus.Text = "+"
 btnPlus.TextColor3 = Colors.Text
 btnPlus.Parent = pageHitbox
 local c2 = Instance.new("UICorner") c2.CornerRadius = UDim.new(0, 4) c2.Parent = btnPlus
 registerButton(btnPlus, function()
-    hitboxSize = math.min(20, hitboxSize + 1)
-    sizeLabel.Text = "Tamaño: " .. hitboxSize
+    n1 = math.min(20, n1 + 1)
+    sizeLabel.Text = "Tamaño Hitbox: " .. n1
 end)
 
--- Lógica de la Hitbox Visible
+-- Lógica Hitbox
 RunService.Heartbeat:Connect(function()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
-            local character = player.Character
-            local hrp = character:FindFirstChild("HumanoidRootPart")
-            local humanoid = character:FindFirstChild("Humanoid")
-
+            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+            local humanoid = player.Character:FindFirstChild("Humanoid")
             if hrp and humanoid and humanoid.Health > 0 then
-                if hitboxEnabled then
-                    if not hitboxData[player] then
+                if u6 or u7 then
+                    if not t1[player] then
                         local box = Instance.new("Part")
                         box.Name = "HitboxPart"
-                        box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                        
-                        -- AQUÍ ESTÁ EL CAMBIO PARA QUE SEA VISIBLE
-                        box.Transparency = 0.5 -- 0 es sólido, 1 es invisible. 0.5 es semitransparente
-                        box.Color = Colors.Green -- Color verde
-                        box.Material = Enum.Material.Neon -- Material brillante (opcional)
-                        
+                        box.Size = Vector3.new(n1, n1, n1)
+                        box.Transparency = u7 and 1 or 0.5
+                        box.Color = Colors.Accent
+                        box.Material = Enum.Material.Neon
                         box.CanCollide = false
                         box.CanTouch = true
                         box.CanQuery = true
@@ -321,28 +325,30 @@ RunService.Heartbeat:Connect(function()
                         box.Anchored = true 
                         box.Parent = workspace
                         
-                        -- Un Highlight para que se vea el borde a través de las paredes
                         local highlight = Instance.new("Highlight")
                         highlight.Adornee = box
-                        highlight.FillColor = Colors.Green
-                        highlight.OutlineColor = Colors.Green
-                        highlight.FillTransparency = 0.8 -- El interior del highlight más transparente
-                        highlight.OutlineTransparency = 0
+                        highlight.FillColor = Colors.Accent
+                        highlight.OutlineColor = Colors.Accent
+                        highlight.FillTransparency = u7 and 1 or 0.8
+                        highlight.OutlineTransparency = u7 and 1 or 0
                         highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
                         highlight.Parent = box
                         
-                        hitboxData[player] = {Box = box, Highlight = highlight}
+                        t1[player] = {Box = box, Highlight = highlight}
                     end
                     
-                    local data = hitboxData[player]
+                    local data = t1[player]
                     if data and data.Box and data.Box.Parent then
-                        data.Box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                        data.Box.Size = Vector3.new(n1, n1, n1)
                         data.Box.CFrame = hrp.CFrame 
+                        data.Box.Transparency = u7 and 1 or 0.5
+                        data.Highlight.FillTransparency = u7 and 1 or 0.8
+                        data.Highlight.OutlineTransparency = u7 and 1 or 0
                     end
                 else
-                    if hitboxData[player] then
-                        if hitboxData[player].Box then hitboxData[player].Box:Destroy() end
-                        hitboxData[player] = nil
+                    if t1[player] then
+                        if t1[player].Box then t1[player].Box:Destroy() end
+                        t1[player] = nil
                     end
                 end
             end
@@ -350,13 +356,56 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Limpiar cajas al salir
-Players.PlayerRemoving:Connect(function(player)
-    if hitboxData[player] then
-        if hitboxData[player].Box then hitboxData[player].Box:Destroy() end
-        hitboxData[player] = nil
-    end
-end)
+-- Panel Derecho (Estético para que se vea igual a la foto)
+local RightPanel = Instance.new("Frame")
+RightPanel.Size = UDim2.new(0, 190, 1, -45)
+RightPanel.Position = UDim2.new(0, 550, 0, 40)
+RightPanel.BackgroundColor3 = Colors.Panel
+RightPanel.Parent = MainFrame
+local RightCorner = Instance.new("UICorner") RightCorner.CornerRadius = UDim.new(0, 8) RightCorner.Parent = RightPanel
 
-switchPage(pagePlayers)
-print("Gabriel Xiter [Duelos - Hitbox Visible] cargado.")
+local RightTitle = Instance.new("TextLabel")
+RightTitle.Size = UDim2.new(1, -20, 0, 30)
+RightTitle.Position = UDim2.fromOffset(10, 10)
+RightTitle.BackgroundTransparency = 1
+RightTitle.Text = "INTERFACE"
+RightTitle.Font = Enum.Font.GothamBold
+RightTitle.TextSize = 11
+RightTitle.TextColor3 = Colors.TextDim
+RightTitle.TextXAlignment = Enum.TextXAlignment.Left
+RightTitle.Parent = RightPanel
+
+-- Botones visuales del panel derecho
+local function createFakeToggle(text, yPos)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -20, 0, 25)
+    lbl.Position = UDim2.fromOffset(10, yPos)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 12
+    lbl.TextColor3 = Colors.Text
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = RightPanel
+    
+    local toggleBg = Instance.new("Frame")
+    toggleBg.Size = UDim2.fromOffset(30, 15)
+    toggleBg.Position = UDim2.new(1, -40, 0, 5)
+    toggleBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    toggleBg.Parent = lbl
+    local tc = Instance.new("UICorner") tc.CornerRadius = UDim.new(1, 0) tc.Parent = toggleBg
+    
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.fromOffset(11, 11)
+    dot.Position = UDim2.fromOffset(2, 2)
+    dot.BackgroundColor3 = Colors.Text
+    dot.Parent = toggleBg
+    local dc = Instance.new("UICorner") dc.CornerRadius = UDim.new(1, 0) dc.Parent = dot
+end
+
+createFakeToggle("Debug Console", 40)
+createFakeToggle("Streamproof", 75)
+createFakeToggle("Hide From Taskbar", 110)
+
+switchPage(pageConfig)
+print("Gabriel Xiter (Nexus UI + Funciones) cargado.")
