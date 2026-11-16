@@ -214,29 +214,110 @@ local function refreshPlayers()
     end)
 end
 
--- SIMPLE OPTION PAGES
-local function makeOptionPage(page, title, description)
-    label(page, title,
-        UDim2.fromOffset(350, 35),
-        UDim2.fromOffset(10, 10), Green)
+-- HITBOX OPTIONS
+local function makeToggle(parent, title, y)
+    local enabled = false
 
-    label(page, description,
-        UDim2.fromOffset(400, 30),
-        UDim2.fromOffset(10, 50), Muted)
+    label(parent, title,
+        UDim2.fromOffset(250, 30),
+        UDim2.fromOffset(15, y))
+
+    local btn = button(parent, "OFF",
+        UDim2.fromOffset(90, 30),
+        UDim2.fromOffset(300, y),
+        function()
+            enabled = not enabled
+            btn.Text = enabled and "ON" or "OFF"
+            btn.BackgroundColor3 = enabled and Green or Panel
+            btn.TextColor3 = enabled and Background or TextColor
+        end)
+
+    return function()
+        return enabled
+    end
 end
 
-makeOptionPage(Hitbox, "Hitbox Settings",
-    "Authorized experience configuration")
+label(Hitbox, "Hitbox Settings",
+    UDim2.fromOffset(300, 35),
+    UDim2.fromOffset(10, 10), Green)
 
-makeOptionPage(ESP, "ESP Settings",
-    "Visual player information")
+local hitboxEnabled = makeToggle(Hitbox, "Hitbox", 65)
 
-makeOptionPage(Movement, "Movement",
-    "Movement settings for your own experience")
+local hitboxSize = 10
+label(Hitbox, "Size: 10",
+    UDim2.fromOffset(150, 25),
+    UDim2.fromOffset(15, 115), TextColor)
 
-makeOptionPage(Settings, "Settings",
-    "GabrielHub V2 configuration")
+button(Hitbox, "-", UDim2.fromOffset(35, 30),
+    UDim2.fromOffset(200, 110), function()
+        hitboxSize = math.max(1, hitboxSize - 1)
+        Hitbox:FindFirstChild("Size: 10").Text =
+            "Size: " .. hitboxSize
+    end)
 
+button(Hitbox, "+", UDim2.fromOffset(35, 30),
+    UDim2.fromOffset(245, 110), function()
+        hitboxSize = math.min(45, hitboxSize + 1)
+        Hitbox:FindFirstChild("Size: 10").Text =
+            "Size: " .. hitboxSize
+    end)
+
+local transparency = 0
+local transparencyLabel = label(Hitbox, "Transparency: 0%",
+    UDim2.fromOffset(250, 25),
+    UDim2.fromOffset(15, 165), TextColor)
+
+button(Hitbox, "-", UDim2.fromOffset(35, 30),
+    UDim2.fromOffset(200, 160), function()
+        transparency = math.max(0, transparency - 10)
+        transparencyLabel.Text =
+            "Transparency: " .. transparency .. "%"
+    end)
+
+button(Hitbox, "+", UDim2.fromOffset(35, 30),
+    UDim2.fromOffset(245, 160), function()
+        transparency = math.min(100, transparency + 10)
+        transparencyLabel.Text =
+            "Transparency: " .. transparency .. "%"
+    end)
+
+-- ESP OPTIONS
+label(ESP, "ESP Settings",
+    UDim2.fromOffset(300, 35),
+    UDim2.fromOffset(10, 10), Green)
+
+local espEnabled = makeToggle(ESP, "ESP Frame", 65)
+local nameEnabled = makeToggle(ESP, "ESP Name", 110)
+
+local espColor = Color3.fromRGB(0, 255, 110)
+
+label(ESP, "Frame Color",
+    UDim2.fromOffset(200, 25),
+    UDim2.fromOffset(15, 165), TextColor)
+
+local colors = {
+    {"Green", Color3.fromRGB(0, 255, 110)},
+    {"Red", Color3.fromRGB(255, 60, 60)},
+    {"Blue", Color3.fromRGB(50, 130, 255)},
+    {"Purple", Color3.fromRGB(180, 70, 255)},
+    {"Yellow", Color3.fromRGB(255, 220, 40)},
+    {"White", Color3.fromRGB(255, 255, 255)}
+}
+
+local colorIndex = 1
+
+local colorButton = button(ESP, "Green",
+    UDim2.fromOffset(120, 32),
+    UDim2.fromOffset(15, 200), function()
+        colorIndex = colorIndex % #colors + 1
+        colorButton.Text = colors[colorIndex][1]
+        espColor = colors[colorIndex][2]
+        colorButton.BackgroundColor3 = espColor
+        colorButton.TextColor3 = Background
+    end)
+
+colorButton.BackgroundColor3 = espColor
+colorButton.TextColor3 = Background
 -- SETTINGS STATUS
 local status = label(Settings, "Interface: Active",
     UDim2.fromOffset(300, 25),
@@ -247,9 +328,7 @@ local menu = {
     "Home",
     "Hitbox",
     "ESP",
-    "Whitelist",
-    "Movement",
-    "Settings"
+    "Whitelist"
 }
 
 local function showPage(name)
