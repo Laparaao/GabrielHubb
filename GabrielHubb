@@ -1,26 +1,27 @@
--- GabrielHub V2
--- UI Dashboard - Roblox Studio
+-- GABRIELHUB V2
+-- Dashboard Neon Green
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+-- COLORS
 local Green = Color3.fromRGB(0, 255, 110)
 local Background = Color3.fromRGB(13, 15, 17)
 local Panel = Color3.fromRGB(22, 25, 27)
 local TextColor = Color3.fromRGB(235, 240, 238)
+local Muted = Color3.fromRGB(140, 150, 145)
 
+-- CLEAN OLD GUI
+local old = PlayerGui:FindFirstChild("GabrielHubV2")
+if old then old:Destroy() end
+
+-- GUI
 local Gui = Instance.new("ScreenGui")
 Gui.Name = "GabrielHubV2"
 Gui.ResetOnSpawn = false
 Gui.Parent = PlayerGui
-
-local Main = Instance.new("Frame")
-Main.Size = UDim2.fromOffset(650, 430)
-Main.Position = UDim2.new(0.5, -325, 0.5, -215)
-Main.BackgroundColor3 = Background
-Main.BorderSizePixel = 0
-Main.Parent = Gui
 
 local function corner(obj, radius)
     local c = Instance.new("UICorner")
@@ -28,8 +29,47 @@ local function corner(obj, radius)
     c.Parent = obj
 end
 
+local function label(parent, text, size, position, color)
+    local obj = Instance.new("TextLabel")
+    obj.Size = size
+    obj.Position = position
+    obj.BackgroundTransparency = 1
+    obj.Text = text
+    obj.TextColor3 = color or TextColor
+    obj.Font = Enum.Font.GothamBold
+    obj.TextSize = 14
+    obj.TextXAlignment = Enum.TextXAlignment.Left
+    obj.Parent = parent
+    return obj
+end
+
+local function button(parent, text, size, position, callback)
+    local obj = Instance.new("TextButton")
+    obj.Size = size
+    obj.Position = position
+    obj.BackgroundColor3 = Panel
+    obj.BorderSizePixel = 0
+    obj.Text = text
+    obj.TextColor3 = TextColor
+    obj.Font = Enum.Font.GothamBold
+    obj.TextSize = 12
+    obj.Parent = parent
+    corner(obj, 7)
+    obj.MouseButton1Click:Connect(callback)
+    return obj
+end
+
+-- MAIN WINDOW
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.fromOffset(650, 430)
+Main.Position = UDim2.new(0.5, -325, 0.5, -215)
+Main.BackgroundColor3 = Background
+Main.BorderSizePixel = 0
+Main.Parent = Gui
 corner(Main, 12)
 
+-- SIDEBAR
 local Sidebar = Instance.new("Frame")
 Sidebar.Size = UDim2.new(0, 155, 1, 0)
 Sidebar.BackgroundColor3 = Color3.fromRGB(17, 20, 21)
@@ -37,26 +77,15 @@ Sidebar.BorderSizePixel = 0
 Sidebar.Parent = Main
 corner(Sidebar, 12)
 
-local Brand = Instance.new("TextLabel")
-Brand.Size = UDim2.new(1, -15, 0, 55)
-Brand.Position = UDim2.fromOffset(12, 8)
-Brand.BackgroundTransparency = 1
-Brand.Text = "GABRIELHUB"
-Brand.TextColor3 = Green
-Brand.Font = Enum.Font.GothamBold
-Brand.TextSize = 18
-Brand.Parent = Sidebar
+label(Sidebar, "GABRIELHUB",
+    UDim2.fromOffset(140, 35),
+    UDim2.fromOffset(12, 10), Green)
 
-local Version = Instance.new("TextLabel")
-Version.Size = UDim2.new(1, 0, 0, 20)
-Version.Position = UDim2.fromOffset(0, 48)
-Version.BackgroundTransparency = 1
-Version.Text = "VERSION 2.0"
-Version.TextColor3 = Color3.fromRGB(120, 130, 125)
-Version.Font = Enum.Font.Gotham
-Version.TextSize = 10
-Version.Parent = Sidebar
+label(Sidebar, "VERSION 2.0",
+    UDim2.fromOffset(130, 20),
+    UDim2.fromOffset(12, 43), Muted)
 
+-- CONTENT
 local Content = Instance.new("Frame")
 Content.Size = UDim2.new(1, -170, 1, -20)
 Content.Position = UDim2.fromOffset(160, 10)
@@ -76,58 +105,63 @@ local function createPage(name)
     return page
 end
 
-local function label(parent, text, size, position, color)
-    local obj = Instance.new("TextLabel")
-    obj.Size = size
-    obj.Position = position
-    obj.BackgroundTransparency = 1
-    obj.Text = text
-    obj.TextColor3 = color or TextColor
-    obj.Font = Enum.Font.GothamBold
-    obj.TextSize = 15
-    obj.TextXAlignment = Enum.TextXAlignment.Left
-    obj.Parent = parent
-    return obj
-end
-
-local function button(parent, text, position, callback)
-    local obj = Instance.new("TextButton")
-    obj.Size = UDim2.fromOffset(135, 35)
-    obj.Position = position
-    obj.BackgroundColor3 = Panel
-    obj.BorderSizePixel = 0
-    obj.Text = text
-    obj.TextColor3 = TextColor
-    obj.Font = Enum.Font.GothamBold
-    obj.TextSize = 12
-    obj.Parent = parent
-    corner(obj, 7)
-    obj.MouseButton1Click:Connect(callback)
-    return obj
-end
-
 local Home = createPage("Home")
-label(Home, "Dashboard", UDim2.fromOffset(300, 35),
+local Hitbox = createPage("Hitbox")
+local ESP = createPage("ESP")
+local Whitelist = createPage("Whitelist")
+local Movement = createPage("Movement")
+local Settings = createPage("Settings")
+
+-- HOME
+label(Home, "Dashboard",
+    UDim2.fromOffset(300, 35),
     UDim2.fromOffset(10, 10), Green)
 
 label(Home, "Welcome to GabrielHub V2",
-    UDim2.fromOffset(350, 30), UDim2.fromOffset(10, 55))
+    UDim2.fromOffset(350, 25),
+    UDim2.fromOffset(10, 55))
 
 label(Home, "Modern interface • Neon Edition",
-    UDim2.fromOffset(350, 25), UDim2.fromOffset(10, 90),
-    Color3.fromRGB(140, 150, 145))
+    UDim2.fromOffset(350, 25),
+    UDim2.fromOffset(10, 85), Muted)
 
-local Whitelist = createPage("Whitelist")
+local Avatar = Instance.new("ImageLabel")
+Avatar.Size = UDim2.fromOffset(75, 75)
+Avatar.Position = UDim2.fromOffset(10, 130)
+Avatar.BackgroundColor3 = Panel
+Avatar.Parent = Home
+corner(Avatar, 12)
+
+local success, image = pcall(function()
+    return Players:GetUserThumbnailAsync(
+        LocalPlayer.UserId,
+        Enum.ThumbnailType.HeadShot,
+        Enum.ThumbnailSize.Size150x150
+    )
+end)
+
+if success then Avatar.Image = image end
+
+label(Home, LocalPlayer.DisplayName,
+    UDim2.fromOffset(250, 25),
+    UDim2.fromOffset(100, 140), Green)
+
+label(Home, "@" .. LocalPlayer.Name,
+    UDim2.fromOffset(250, 25),
+    UDim2.fromOffset(100, 168), Muted)
+
+-- WHITELIST
 label(Whitelist, "Player Whitelist",
-    UDim2.fromOffset(350, 35), UDim2.fromOffset(10, 10), Green)
+    UDim2.fromOffset(350, 35),
+    UDim2.fromOffset(10, 10), Green)
 
-label(Whitelist, "Players in your experience",
-    UDim2.fromOffset(350, 25), UDim2.fromOffset(10, 45),
-    Color3.fromRGB(140, 150, 145))
+label(Whitelist, "Selected players are excluded",
+    UDim2.fromOffset(350, 25),
+    UDim2.fromOffset(10, 45), Muted)
 
 local List = Instance.new("ScrollingFrame")
-List.Size = UDim2.new(1, -20, 1, -115)
-List.Position = UDim2.fromOffset(10, 85)
+List.Size = UDim2.new(1, -20, 1, -85)
+List.Position = UDim2.fromOffset(10, 75)
 List.BackgroundColor3 = Panel
 List.BorderSizePixel = 0
 List.ScrollBarThickness = 4
@@ -157,31 +191,26 @@ local function refreshPlayers()
             row.Parent = List
             corner(row, 6)
 
-            local name = label(row, player.Name,
+            label(row, player.Name,
                 UDim2.new(0.65, 0, 1, 0),
                 UDim2.fromOffset(10, 0))
 
-            local selectButton = Instance.new("TextButton")
-            selectButton.Size = UDim2.fromOffset(85, 27)
-            selectButton.Position = UDim2.new(1, -95, 0.5, -13)
-            selectButton.BackgroundColor3 =
-                selected[player.UserId] and Green or Panel
-            selectButton.Text =
-                selected[player.UserId] and "SELECTED" or "SELECT"
-            selectButton.TextColor3 =
-                selected[player.UserId] and Background or Green
-            selectButton.Font = Enum.Font.GothamBold
-            selectButton.TextSize = 10
-            selectButton.Parent = row
-            corner(selectButton, 5)
-
-            selectButton.MouseButton1Click:Connect(function()
-                selected[player.UserId] = not selected[player.UserId]
-                if not selected[player.UserId] then
-                    selected[player.UserId] = nil
+            local selectButton = button(
+                row,
+                selected[player.UserId] and "SELECTED" or "SELECT",
+                UDim2.fromOffset(85, 27),
+                UDim2.new(1, -95, 0.5, -13),
+                function()
+                    selected[player.UserId] =
+                        not selected[player.UserId] or nil
+                    refreshPlayers()
                 end
-                refreshPlayers()
-            end)
+            )
+
+            if selected[player.UserId] then
+                selectButton.BackgroundColor3 = Green
+                selectButton.TextColor3 = Background
+            end
         end
     end
 
@@ -192,37 +221,139 @@ local function refreshPlayers()
     end)
 end
 
-local Settings = createPage("Settings")
-label(Settings, "Settings", UDim2.fromOffset(300, 35),
-    UDim2.fromOffset(10, 10), Green)
+-- SIMPLE OPTION PAGES
+local function makeOptionPage(page, title, description)
+    label(page, title,
+        UDim2.fromOffset(350, 35),
+        UDim2.fromOffset(10, 10), Green)
 
-label(Settings, "GabrielHub V2",
-    UDim2.fromOffset(300, 25), UDim2.fromOffset(10, 55))
+    label(page, description,
+        UDim2.fromOffset(400, 30),
+        UDim2.fromOffset(10, 50), Muted)
+end
+
+makeOptionPage(Hitbox, "Hitbox Settings",
+    "Authorized experience configuration")
+
+makeOptionPage(ESP, "ESP Settings",
+    "Visual player information")
+
+makeOptionPage(Movement, "Movement",
+    "Movement settings for your own experience")
+
+makeOptionPage(Settings, "Settings",
+    "GabrielHub V2 configuration")
+
+-- SETTINGS STATUS
+local status = label(Settings, "Interface: Active",
+    UDim2.fromOffset(300, 25),
+    UDim2.fromOffset(10, 95), Green)
+
+-- NAVIGATION
+local menu = {
+    "Home",
+    "Hitbox",
+    "ESP",
+    "Whitelist",
+    "Movement",
+    "Settings"
+}
 
 local function showPage(name)
     for pageName, page in pairs(Pages) do
         page.Visible = pageName == name
     end
+
     if name == "Whitelist" then
         refreshPlayers()
     end
 end
 
-local menu = {"Home", "Whitelist", "Settings"}
-
 for i, name in ipairs(menu) do
-    button(Sidebar, name, UDim2.fromOffset(10, 95 + (i-1)*45),
+    button(
+        Sidebar,
+        name,
+        UDim2.fromOffset(135, 35),
+        UDim2.fromOffset(10, 80 + (i - 1) * 43),
         function()
             showPage(name)
-        end)
+        end
+    )
 end
 
+-- WINDOW CONTROLS
+local Controls = Instance.new("Frame")
+Controls.Size = UDim2.fromOffset(105, 30)
+Controls.Position = UDim2.new(1, -115, 0, 8)
+Controls.BackgroundTransparency = 1
+Controls.Parent = Main
+
+local function control(symbol, x, color, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.fromOffset(30, 27)
+    btn.Position = UDim2.fromOffset(x, 0)
+    btn.BackgroundColor3 = Panel
+    btn.BorderSizePixel = 0
+    btn.Text = symbol
+    btn.TextColor3 = color
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.Parent = Controls
+    corner(btn, 6)
+    btn.MouseButton1Click:Connect(callback)
+end
+
+-- REOPEN BUTTON
+local Reopen = button(
+    Gui,
+    "GABRIELHUB",
+    UDim2.fromOffset(145, 38),
+    UDim2.new(0, 15, 0.5, 0),
+    function()
+        Main.Visible = true
+        Reopen.Visible = false
+    end
+)
+Reopen.Visible = false
+Reopen.BackgroundColor3 = Background
+Reopen.TextColor3 = Green
+
+-- MINIMIZE
+control("—", 0, TextColor, function()
+    Main.Visible = false
+    Reopen.Visible = true
+end)
+
+-- MAXIMIZE
+local maximized = false
+local normalSize = UDim2.fromOffset(650, 430)
+local normalPosition = UDim2.new(0.5, -325, 0.5, -215)
+
+control("□", 36, Green, function()
+    maximized = not maximized
+
+    if maximized then
+        Main.Size = UDim2.new(1, -30, 1, -30)
+        Main.Position = UDim2.fromOffset(15, 15)
+    else
+        Main.Size = normalSize
+        Main.Position = normalPosition
+    end
+end)
+
+-- CLOSE
+control("X", 72, Color3.fromRGB(255, 75, 75), function()
+    Gui:Destroy()
+end)
+
+-- PLAYER EVENTS
 Players.PlayerAdded:Connect(refreshPlayers)
+
 Players.PlayerRemoving:Connect(function(player)
     selected[player.UserId] = nil
     refreshPlayers()
 end)
 
+-- START
 showPage("Home")
-
 print("GabrielHub V2 loaded")
