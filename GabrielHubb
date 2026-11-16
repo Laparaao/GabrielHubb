@@ -1,555 +1,179 @@
---[[
-    DEOBFBYSZK - Murderers VS Sheriffs
-    MADE BY SZK
-    Discord: https://discord.gg/f4JfyAFCN
-]]
-
+-- ==========================================
+-- GABRIEL XITER - WINDUI EDITION
+-- ==========================================
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 if not WindUI then
-    warn("[DEOBFBYSZK] WindUI no cargo")
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Error",
+        Text = "No se pudo cargar WindUI. Revisa tu conexión.",
+    })
     return
 end
 
-local setclipboard = setclipboard or function() end
-local getgenv = getgenv or function() return _G end
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
-local DISCORD_INVITE = "https://discord.gg/f4JfyAFCN"
-local UNLOAD_KEY = "__DEOBFBYSZK_UNLOAD"
-local IS_UNLOADING = false
+-- Variables de estado
+local espEnabled = false
+local espObjects = {}
+local hitboxEnabled = false
+local hitboxSize = 5
+local hitboxTransparency = 0.5
+local hitboxData = {}
 
-pcall(function()
-    local env = getgenv()
-    if type(env[UNLOAD_KEY]) == "function" then
-        env[UNLOAD_KEY]()
-    end
-end)
-
-local Players           = game:GetService("Players")
-local RunService        = game:GetService("RunService")
-local UserInputService  = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Lighting          = game:GetService("Lighting")
-local LocalPlayer       = Players.LocalPlayer
-
-local function IsMobile()
-    local ok, platform = pcall(function() return UserInputService:GetPlatform() end)
-    if ok and (platform == Enum.Platform.Android or platform == Enum.Platform.IOS) then
-        return true
-    end
-    return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-end
-local IS_MOBILE = IsMobile()
-
-local function GetCursorPosition()
-    if IS_MOBILE then
-        local cam = workspace.CurrentCamera
-        return cam and (cam.ViewportSize / 2) or Vector2.zero
-    end
-    return UserInputService:GetMouseLocation()
-end
-
-local ALLY_LOOKUP = { [8343463328] = true }
-local IsAlly = {}
-function IsAlly:check(player)
-    if not player then return false end
-    return ALLY_LOOKUP[player.UserId] == true
-end
-
-local ConnectionBucket = {}
-ConnectionBucket.__index = ConnectionBucket
-function ConnectionBucket.new() return setmetatable({ _conns = {} }, ConnectionBucket) end
-function ConnectionBucket:add(obj) self._conns[#self._conns + 1] = obj; return obj end
-function ConnectionBucket:clear()
-    for i = #self._conns, 1, -1 do
-        local obj = self._conns[i]
-        self._conns[i] = nil
-        local t = typeof(obj)
-        if t == "RBXScriptConnection" then pcall(function() obj:Disconnect() end)
-        elseif t == "Instance" then pcall(function() obj:Destroy() end)
-        elseif t == "function" then pcall(obj) end
-    end
-end
-
-local Config = {
-    Notifications = { Enabled = true },
-    ESP = { Enabled = false, ShowName = false, Lines = false, Color = Color3.fromRGB(0,255,0), LinesColor = Color3.fromRGB(0,255,0) },
-    Hitbox = { Enabled = false, Size = 4, Show = true, Opacity = 5.5, Color = Color3.fromRGB(255,0,0) },
-    Bubbles = { SilentAim = false, KillAll = false, Invisible = false, Desync = false, AutoShoot = false },
-    PlayerCheats = { JumpPowerEnabled = false, JumpPower = 25, InfiniteJump = false, SpeedEnabled = false, Speed = 24 },
-    AutoTeleport = { Main = false, Alt = false, DuelType = "1v1", PlatformRow = "Right Platforms", BreakStreak = false, BreakStreakTarget = 1, LowerKD = false, KDTargetKills = 4, EventFarm = false },
-    Bannable = {
-        KillAll = false, Invisible = false, Desync = false,
-        AimFollow = false, AimFollowFirearmOnly = true, AimFollowKnifeOnly = false, AimFollowRaycast = true,
-        BodyPartsEnabled = true,
-        BodyParts = {
-            Head=true,LeftUpperArm=true,LeftLowerArm=true,LeftHand=true,
-            RightUpperArm=true,RightLowerArm=true,RightHand=true,
-            UpperTorso=true,LowerTorso=true,LeftUpperLeg=true,LeftLowerLeg=true,
-            LeftFoot=true,RightUpperLeg=true,RightLowerLeg=true,RightFoot=true,
-        },
-        Triggerbot=false, SilentAim=false, AutoShoot=false, Macro=false,
-        FOVEnabled=false, FOVVisible=true, FOVRadius=200, HitChance=100,
-    },
-    Boxes = { Selected = "Knife Box #1", Price = 500, AutoBuy = false },
-    FloatingFloor = { Enabled = false, HideMap = false, Height = 0 },
-    Emotes = { AutoExecute = false },
-    Keybinds = { ToggleUI = "RightControl" },
-}
-
-local function ToColor3(value, default)
-    if typeof(value) == "Color3" then return value end
-    if type(value) == "table" then
-        local r = value.R or value.r or value[1]
-        local g = value.G or value.g or value[2]
-        local b = value.B or value.b or value[3]
-        if type(r) == "number" and type(g) == "number" and type(b) == "number" then
-            if r > 1 or g > 1 or b > 1 then
-                return Color3.fromRGB(math.clamp(r,0,255), math.clamp(g,0,255), math.clamp(b,0,255))
-            end
-            return Color3.new(r, g, b)
-        end
-    end
-    return default
-end
-
-local IS_LOADING_CONFIG = false
-local function SetToggleValue(t, v)
-    if v == nil or not t then return end
-    IS_LOADING_CONFIG = true
-    pcall(function() t:Set(v) end)
-    IS_LOADING_CONFIG = false
-end
-
-local function GetHRP(player)
-    local char = player and player.Character
-    if not char then return nil end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    return (hrp and hrp:IsA("BasePart")) and hrp or nil
-end
-
-local function GetHumanoid(player)
-    local char = player and player.Character
-    return char and char:FindFirstChildOfClass("Humanoid") or nil
-end
-
-local function HasGameAttribute(player)
-    if not player then return false end
-    local v = player:GetAttribute("Game")
-    return typeof(v) == "string" and v ~= ""
-end
-
-local function HasMapAttribute(player)
-    if not HasGameAttribute(player) then return false end
-    local v = player:GetAttribute("Map")
-    return typeof(v) == "string" and v ~= ""
-end
-
-local function WaitForChildSafe(parent, name, timeout)
-    if not parent then return nil end
-    timeout = timeout or 2
-    local ok, child = pcall(function() return parent:WaitForChild(name, timeout) end)
-    if ok then return child end
-    return nil
-end
-
-local EnemyChecker = {}
-EnemyChecker.__index = EnemyChecker
-function EnemyChecker:IsEnemy(player)
-    if player == LocalPlayer then return false end
-    if not HasMapAttribute(LocalPlayer) or not HasMapAttribute(player) then return false end
-    if LocalPlayer:GetAttribute("Game") ~= player:GetAttribute("Game") then return false end
-    if LocalPlayer:GetAttribute("Map")  ~= player:GetAttribute("Map")  then return false end
-    local myTeam, hisTeam = LocalPlayer:GetAttribute("Team"), player:GetAttribute("Team")
-    if typeof(myTeam) ~= "string" or myTeam == "" then return false end
-    if typeof(hisTeam) ~= "string" or hisTeam == "" then return false end
-    return myTeam ~= hisTeam
-end
-local EnemyCheckerInstance = setmetatable({}, EnemyChecker)
-
-local function IsValidEnemy(player)
-    if not EnemyCheckerInstance:IsEnemy(player) then return false end
-    if IsAlly:check(player) then return false end
-    return true
-end
-
-local function IsAlive(player)
-    local char = player and player.Character
-    if not char then return false end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    return hum and hum.Health > 0
-end
-
-local BODY_PART_NAMES = {
-    "Head","LeftLowerArm","LeftHand","LeftLowerLeg","LeftFoot",
-    "LeftUpperArm","LeftUpperLeg","LowerTorso","RightLowerArm","RightHand",
-    "RightLowerLeg","RightFoot","RightUpperArm","RightUpperLeg","UpperTorso",
-}
-local BODY_PART_LOOKUP = {}
-for _, n in ipairs(BODY_PART_NAMES) do BODY_PART_LOOKUP[n] = true end
-
-local BODY_WEIGHTS = {
-    UpperTorso=34,LowerTorso=22,HumanoidRootPart=22,Head=14,
-    LeftUpperArm=5,RightUpperArm=5,LeftUpperLeg=5,RightUpperLeg=5,
-    LeftLowerArm=3,RightLowerArm=3,LeftLowerLeg=3,RightLowerLeg=3,
-    LeftHand=2,RightHand=2,LeftFoot=2,RightFoot=2,
-}
-
-local function SanitizeBodyPartsConfig()
-    if type(Config.Bannable.BodyParts) ~= "table" then Config.Bannable.BodyParts = {} end
-    for name, value in pairs(Config.Bannable.BodyParts) do
-        if not BODY_PART_LOOKUP[name] then Config.Bannable.BodyParts[name] = nil
-        elseif type(value) ~= "boolean" then Config.Bannable.BodyParts[name] = value == true end
-    end
-    for _, name in ipairs(BODY_PART_NAMES) do
-        if Config.Bannable.BodyParts[name] == nil then Config.Bannable.BodyParts[name] = true end
-    end
-end
-
-local function GetEnabledBodyPartNames()
-    SanitizeBodyPartsConfig()
-    if not Config.Bannable.BodyPartsEnabled then
-        return { "Head", "UpperTorso", "HumanoidRootPart" }
-    end
-    local out = {}
-    for _, name in ipairs(BODY_PART_NAMES) do
-        if Config.Bannable.BodyParts[name] == true then out[#out+1] = name end
-    end
-    if #out == 0 then return { "UpperTorso", "HumanoidRootPart" } end
-    return out
-end
-
-local function GetAimParts(player, names)
-    local char = player and player.Character
-    if not char then return nil end
-    names = names or GetEnabledBodyPartNames()
-    local out = {}
-    for _, name in ipairs(names) do
-        local part = char:FindFirstChild(name)
-        if part and part:IsA("BasePart") then out[#out+1] = part end
-    end
-    return #out > 0 and out or nil
-end
-
-local function SelectAimPart(player, names)
-    local parts = GetAimParts(player, names)
-    if not parts then return nil end
-    local total = 0
-    local weights = {}
-    for _, part in ipairs(parts) do
-        local w = BODY_WEIGHTS[part.Name] or 1
-        weights[#weights+1] = w
-        total = total + w
-    end
-    if total <= 0 then return parts[1] end
-    local roll = math.random() * total
-    local acc = 0
-    for i, part in ipairs(parts) do
-        acc = acc + weights[i]
-        if roll <= acc then return part end
-    end
-    return parts[1]
-end
-
-local function GetBodyPartsForAim() return GetEnabledBodyPartNames() end
-
-local function HitChancePasses()
-    local c = math.clamp(tonumber(Config.Bannable.HitChance) or 100, 0, 100)
-    if c >= 100 then return true end
-    if c <= 0 then return false end
-    return (math.random() * 100) <= c
-end
-
-local function IsFirearm(tool)
-    if not (tool and tool:IsA("Tool")) then return false end
-    local fire = tool:FindFirstChild("fire")
-    if fire and fire:IsA("RemoteEvent") then return true end
-    local beam = tool:FindFirstChild("showBeam")
-    if beam and beam:IsA("RemoteEvent") then return true end
-    return false
-end
-
-local function IsKnife(tool)
-    if not (tool and tool:IsA("Tool")) then return false end
-    local kill = tool:FindFirstChild("kill")
-    local name = tostring(tool.Name or ""):lower()
-    return (kill and kill:IsA("RemoteEvent")) or name:find("knife", 1, true) ~= nil
-end
-
-local function FindToolByPredicate(char, predicate)
-    if not char then return nil end
-    for _, child in ipairs(char:GetChildren()) do
-        if predicate(child) then return child end
-    end
-    return nil
-end
-
-local function FindEquippedKnife()
-    return FindToolByPredicate(LocalPlayer.Character, IsKnife)
-end
-
-local function GetFirearmTool()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    local equipped = FindToolByPredicate(char, IsFirearm)
-    if equipped then return equipped end
-    local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
-    if backpack then
-        local candidate = FindToolByPredicate(backpack, IsFirearm)
-        if candidate then
-            local hum = GetHumanoid(LocalPlayer)
-            if hum then
-                pcall(function() hum:EquipTool(candidate) end)
-                task.wait(0.05)
-                if candidate.Parent == char then return candidate end
-            end
-        end
-    end
-    return nil
-end
-
-local SharedRaycast = { _params = nil, _lastFilter = false }
-local function GetSharedRaycastParams(ignoreChar)
-    if not SharedRaycast._params or SharedRaycast._lastFilter ~= ignoreChar then
-        local p = SharedRaycast._params
-        if not p then
-            p = RaycastParams.new()
-            p.FilterType = Enum.RaycastFilterType.Exclude
-            p.IgnoreWater = true
-            SharedRaycast._params = p
-        end
-        p.FilterDescendantsInstances = ignoreChar and { ignoreChar } or {}
-        SharedRaycast._lastFilter = ignoreChar
-    end
-    return SharedRaycast._params
-end
-
-local function HasLineOfSight(target, targetPart)
-    local myChar = LocalPlayer.Character
-    local myHRP  = GetHRP(LocalPlayer)
-    if not (myChar and myHRP and target and target.Character and targetPart and targetPart:IsA("BasePart")) then
-        return false
-    end
-    local dir = targetPart.Position - myHRP.Position
-    if dir.Magnitude <= 0 then return false end
-    local params = GetSharedRaycastParams(myChar)
-    local hit = workspace:Raycast(myHRP.Position, dir, params)
-    return (not hit) or (hit.Instance and hit.Instance:IsDescendantOf(target.Character))
-end
-
-local function HasClearLOS(targetPart, origin, params)
-    local size = targetPart.Size
-    local offsets = {
-        Vector3.zero,
-        Vector3.new(size.X / 2.1, 0, 0),
-        Vector3.new(-size.X / 2.1, 0, 0),
-        Vector3.new(0, size.Y / 2.1, 0),
-        Vector3.new(0, -size.Y / 2.1, 0),
-    }
-    for _, off in ipairs(offsets) do
-        local targetPos = targetPart.CFrame * off
-        if not workspace:Raycast(origin, targetPos - origin, params) then
-            return true
-        end
-    end
-    return false
-end
-
-local function GetGuiParent()
-    if type(gethui) == "function" then
-        local ok, hui = pcall(gethui)
-        if ok and hui then return hui end
-    end
-    local ok, cg = pcall(function() return game:GetService("CoreGui") end)
-    if ok and cg then return cg end
-    return LocalPlayer:FindFirstChild("PlayerGui")
-end
-
-local function IsMatchTimerVisible()
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    local main = (pg and pg:FindFirstChild("Main")) or pg
-    local frame = main and main:FindFirstChild("MainGameFrame")
-    local score = frame and frame:FindFirstChild("IngameScore")
-    local timer = score and score:FindFirstChild("Timer")
-    if not timer then return false end
-    return tostring(timer.Text or ""):match("^%s*%d+:%d%d%s*$") ~= nil
-end
-
---=================================================================
--- VENTANA
---=================================================================
-local WindWindow = WindUI:CreateWindow({
-    Title = "DEOBFBYSZK",
+-- Crear Ventana
+local Window = WindUI:CreateWindow({
+    Title = "Gabriel Xiter",
     Icon = "swords",
-    Author = "MADE BY SZK",
-    Folder = "DEOBFBYSZK/Configs",
+    Author = "Duelos Edition",
+    Folder = "GabrielXiter",
+    Size = UDim2.fromOffset(580, 460),
     Theme = "Dark",
-    NewElements = true,
-    OpenButton = {
-        Title = "DEOBFBYSZK",
-        Icon = "monitor",
-        CornerRadius = UDim.new(0, 16),
-        StrokeThickness = 2,
-        Color = ColorSequence.new(Color3.fromHex("FF0F7B"), Color3.fromHex("F89B29")),
-        OnlyMobile = false,
-        Enabled = true,
-        Draggable = true,
-    },
+    Transparent = true,
+    ThemeSettings = {
+        Accent = Color3.fromRGB(255, 80, 150), -- Tu color rosa
+        Background = Color3.fromRGB(22, 22, 22)
+    }
 })
 
-pcall(function()
-    WindWindow:Tag({
-        Title = "v1.0.0",
-        Icon = "github",
-        Color = Color3.fromHex("#4FC3F7"),
-        Radius = 13,
-    })
-end)
+-- ==========================================
+-- PESTAÑA: VISUALES (ESP)
+-- ==========================================
+local VisualTab = Window:Tab({ Title = "Visuales", Icon = "eye" })
 
-pcall(function()
-    WindWindow:EditOpenButton({
-        Title = "DEOBFBYSZK",
-        Icon = "",
-        CornerRadius = UDim.new(0, 16),
-        StrokeThickness = 2,
-        Color = ColorSequence.new(Color3.fromHex("FF0F7B"), Color3.fromHex("F89B29")),
-        OnlyMobile = true,
-        Enabled = true,
-        Draggable = true,
-    })
-end)
+VisualTab:Toggle({
+    Title = "ESP Box (Highlight)",
+    Desc = "Muestra un cuadro brillante alrededor de los enemigos.",
+    Default = false,
+    Callback = function(state)
+        espEnabled = state
+        if not state then
+            for _, obj in pairs(espObjects) do
+                if obj then obj:Destroy() end
+            end
+            espObjects = {}
+        end
+    end
+})
 
-local CONFIG_MANAGER = nil
-pcall(function()
-    if WindWindow.ConfigManager then
-        CONFIG_MANAGER = WindWindow.ConfigManager:CreateConfig("deobfbyszk_main")
+-- Lógica del ESP
+RunService.RenderStepped:Connect(function()
+    if not espEnabled then return end
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            if not espObjects[player] then
+                local highlight = Instance.new("Highlight")
+                highlight.Adornee = player.Character
+                highlight.FillColor = Color3.fromRGB(255, 80, 150)
+                highlight.OutlineColor = Color3.fromRGB(255, 80, 150)
+                highlight.FillTransparency = 0.5
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Parent = game:GetService("CoreGui")
+                espObjects[player] = highlight
+            end
+        end
     end
 end)
 
-local SKIP_SAVE = true
-local function SaveConfig()
-    if not IS_LOADING_CONFIG and not SKIP_SAVE and CONFIG_MANAGER then
-        pcall(function() CONFIG_MANAGER:Save() end)
-    end
-end
+-- ==========================================
+-- PESTAÑA: HITBOX
+-- ==========================================
+local HitboxTab = Window:Tab({ Title = "Hitbox", Icon = "crosshair" })
 
-local AUTO_SAVE_ACC = 0
-local CONFIG_AUTOSAVE_CONN = RunService.Heartbeat:Connect(function(dt)
-    AUTO_SAVE_ACC = AUTO_SAVE_ACC + dt
-    if AUTO_SAVE_ACC < 5 then return end
-    AUTO_SAVE_ACC = 0
-    SaveConfig()
+HitboxTab:Toggle({
+    Title = "Activar Hitbox",
+    Desc = "Crea un cuadro invisible para facilitar los tiros.",
+    Default = false,
+    Callback = function(state)
+        hitboxEnabled = state
+        if not state then
+            for _, data in pairs(hitboxData) do
+                if data.Box then data.Box:Destroy() end
+            end
+            hitboxData = {}
+        end
+    end
+})
+
+HitboxTab:Slider({
+    Title = "Tamaño",
+    Desc = "Tamaño de la caja.",
+    Step = 1,
+    Value = { Min = 1, Max = 20, Default = 5 },
+    Callback = function(value)
+        hitboxSize = value
+    end
+})
+
+HitboxTab:Slider({
+    Title = "Transparencia",
+    Desc = "0 es sólido, 1 es invisible.",
+    Step = 0.1,
+    Value = { Min = 0, Max = 1, Default = 0.5 },
+    Callback = function(value)
+        hitboxTransparency = value
+    end
+})
+
+-- Lógica de la Hitbox
+RunService.Heartbeat:Connect(function()
+    if not hitboxEnabled then return end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+            local humanoid = player.Character:FindFirstChild("Humanoid")
+            
+            if hrp and humanoid and humanoid.Health > 0 then
+                if not hitboxData[player] then
+                    local box = Instance.new("Part")
+                    box.Name = "GabrielHitbox"
+                    box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                    box.Transparency = hitboxTransparency
+                    box.Color = Color3.fromRGB(255, 80, 150)
+                    box.Material = Enum.Material.Neon
+                    box.CanCollide = false
+                    box.CanQuery = true
+                    box.Massless = true
+                    box.Anchored = true 
+                    box.Parent = workspace
+                    
+                    hitboxData[player] = {Box = box}
+                end
+                
+                local data = hitboxData[player]
+                if data and data.Box and data.Box.Parent then
+                    data.Box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                    data.Box.Transparency = hitboxTransparency
+                    data.Box.CFrame = hrp.CFrame 
+                end
+            end
+        end
+    end
 end)
 
-local function Notify(title, content, icon, duration)
-    if Config.Notifications.Enabled then
-        pcall(function()
-            WindUI:Notify({
-                Title = title,
-                Content = content,
-                Duration = duration or 3,
-                Icon = icon or "info",
-            })
-        end)
-    end
-end
+-- ==========================================
+-- PESTAÑA: AJUSTES
+-- ==========================================
+local SettingsTab = Window:Tab({ Title = "Ajustes", Icon = "settings" })
 
---=================================================================
--- HANDLERS
---=================================================================
-
-local JumpPowerHandler = {}
-JumpPowerHandler.__index = JumpPowerHandler
-function JumpPowerHandler.new()
-    return setmetatable({ _running=false, _conns=ConnectionBucket.new(), _humanoid=nil, _original=nil }, JumpPowerHandler)
-end
-function JumpPowerHandler:InGame() return HasGameAttribute(LocalPlayer) end
-function JumpPowerHandler:CacheOriginal(humanoid)
-    if not humanoid or humanoid == self._humanoid then return end
-    self._humanoid = humanoid
-    self._original = { UseJumpPower=humanoid.UseJumpPower, JumpPower=humanoid.JumpPower, JumpHeight=humanoid.JumpHeight }
-end
-function JumpPowerHandler:GetHumanoid()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then self:CacheOriginal(hum) end
-    return hum
-end
-function JumpPowerHandler:RestoreOriginal(humanoid)
-    humanoid = humanoid or self:GetHumanoid()
-    if not humanoid or not self._original then return end
-    pcall(function()
-        humanoid.UseJumpPower = self._original.UseJumpPower
-        if self._original.UseJumpPower then humanoid.JumpPower = self._original.JumpPower
-        else humanoid.JumpHeight = self._original.JumpHeight end
-    end)
-end
-function JumpPowerHandler:ApplyJumpPower(humanoid)
-    humanoid = humanoid or self:GetHumanoid()
-    if not humanoid then return end
-    self:CacheOriginal(humanoid)
-    if Config.PlayerCheats.JumpPowerEnabled and self:InGame() then
-        local p = math.max(0, tonumber(Config.PlayerCheats.JumpPower) or 25)
-        pcall(function()
-            humanoid.UseJumpPower = true
-            humanoid.JumpPower = p * 2
-        end)
-    else
-        self:RestoreOriginal(humanoid)
+SettingsTab:Button({
+    Title = "Destruir Script",
+    Desc = "Cierra la interfaz y apaga todo.",
+    Callback = function()
+        Window:Destroy()
+        for _, obj in pairs(espObjects) do if obj then obj:Destroy() end end
+        for _, data in pairs(hitboxData) do if data.Box then data.Box:Destroy() end end
     end
-end
-function JumpPowerHandler:Start()
-    if self._running then return end
-    self._running = true
-    self._conns:add(LocalPlayer:GetAttributeChangedSignal("Game"):Connect(function()
-        if self._running then self:ApplyJumpPower() end
-    end))
-    self._conns:add(LocalPlayer.CharacterAdded:Connect(function(char)
-        task.defer(function()
-            local hum = WaitForChildSafe(char, "Humanoid", 5)
-            if hum then self._humanoid = nil; self:ApplyJumpPower(hum) end
-        end)
-    end))
-    self._conns:add(UserInputService.JumpRequest:Connect(function()
-        if not Config.PlayerCheats.InfiniteJump then return end
-        if not self:InGame() then return end
-        local hum = self:GetHumanoid()
-        if hum then pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end) end
-    end))
-end
-function JumpPowerHandler:Stop()
-    if not self._running then self:RestoreOriginal(); return end
-    self._running = false
-    self._conns:clear()
-    self:RestoreOriginal()
-end
-function JumpPowerHandler:Refresh()
-    if Config.PlayerCheats.JumpPowerEnabled or Config.PlayerCheats.InfiniteJump then
-        self:Start(); self:ApplyJumpPower()
-    else
-        self:Stop()
-    end
-end
+})
 
-local SpeedHandler = {}
-SpeedHandler.__index = SpeedHandler
-function SpeedHandler.new()
-    return setmetatable({ _running=false, _conns=ConnectionBucket.new(), _humanoid=nil, _originalSpeed=nil, _watchConn=nil, _watchedHumanoid=nil }, SpeedHandler)
-end
-function SpeedHandler:InGame() return HasGameAttribute(LocalPlayer) end
-function SpeedHandler:GetConfiguredSpeed() return math.max(0, tonumber(Config.PlayerCheats.Speed) or 24) end
-function SpeedHandler:CacheOriginal(h)
-    if not h or h == self._humanoid then return end
-    self._humanoid = h; self._originalSpeed = h.WalkSpeed
-end
-function SpeedHandler:GetHumanoid()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then self:CacheOriginal(hum) end
-    return hum
-end
-function SpeedHandler:WatchWalkSpeed(h)
-    if not h or h == self._watchedHumanoid then return end
-    self:Stop            º        
+-- Mensaje de carga
+WindUI:Notify({
+    Title = "Gabriel Xiter",
+    Content = "Script cargado correctamente.",
+    Duration = 5,
+    Icon = "check"
+})
