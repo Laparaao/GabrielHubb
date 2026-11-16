@@ -1,177 +1,272 @@
 -- ==========================================
--- GABRIEL XITER - HITBOX CUADRADA (SIN LIBRERIAS)
+-- GABRIEL XITER - NEVERBLOX UI CLONE
 -- ==========================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Variables
-local hitboxEnabled = false
-local hitboxSize = 5
-local hitboxColor = Color3.fromRGB(255, 50, 50) -- Rojo como en tu foto
-local ghostHitboxes = {}
+-- Limpiar UI vieja
+for _, gui in pairs(PlayerGui:GetChildren()) do
+    if gui.Name == "NeverBloxClone" or gui.Name == "GabrielXiter" then gui:Destroy() end
+end
 
+-- Variables de Estado
 local aimbotEnabled = false
+local espEnabled = false
+local teamCheck = false
+local fovRadius = 150
+local aimbotTargetPart = "Head"
+local hitboxEnabled = false
 
 -- ==========================================
--- INTERFAZ BÁSICA (PARA QUE NO FALLE)
+-- CREACIÓN DE LA UI
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GabrielXiter_UI"
+ScreenGui.Name = "NeverBloxClone"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Parent = PlayerGui
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 250, 0, 200)
-Frame.Position = UDim2.new(0, 20, 0, 20)
-Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Frame.BorderSizePixel = 0
-Frame.Active = true
-Frame.Draggable = true
-Frame.Parent = ScreenGui
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.fromOffset(700, 400)
+MainFrame.Position = UDim2.new(0.5, -350, 0.5, -200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 6)
+local UIStroke = Instance.new("UIStroke", MainFrame)
+UIStroke.Color = Color3.fromRGB(40, 40, 40)
+
+-- Título (Barra superior)
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+TopBar.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+TopBar.Parent = MainFrame
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 6)
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Title.Text = "Gabriel Xiter"
-Title.TextColor3 = Color3.fromRGB(255, 50, 50)
+Title.Size = UDim2.new(1, -10, 1, 0)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "NEVERBLOX"
 Title.Font = Enum.Font.GothamBold
-Title.Parent = Frame
+Title.TextSize = 18
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
 
-local HitboxBtn = Instance.new("TextButton")
-HitboxBtn.Size = UDim2.new(0, 200, 0, 30)
-HitboxBtn.Position = UDim2.new(0, 25, 0, 50)
-HitboxBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-HitboxBtn.Text = "Hitbox: OFF"
-HitboxBtn.TextColor3 = Color3.new(1, 1, 1)
-HitboxBtn.Parent = Frame
-
-local SizeLabel = Instance.new("TextLabel")
-SizeLabel.Size = UDim2.new(0, 200, 0, 20)
-SizeLabel.Position = UDim2.new(0, 25, 0, 90)
-SizeLabel.BackgroundTransparency = 1
-SizeLabel.Text = "Tamaño: 5"
-SizeLabel.TextColor3 = Color3.new(1, 1, 1)
-SizeLabel.Parent = Frame
-
-local SizeMinus = Instance.new("TextButton")
-SizeMinus.Size = UDim2.new(0, 45, 0, 25)
-SizeMinus.Position = UDim2.new(0, 25, 0, 120)
-SizeMinus.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-SizeMinus.Text = "-"
-SizeMinus.TextColor3 = Color3.new(1, 1, 1)
-SizeMinus.Parent = Frame
-
-local SizePlus = Instance.new("TextButton")
-SizePlus.Size = UDim2.new(0, 45, 0, 25)
-SizePlus.Position = UDim2.new(0, 80, 0, 120)
-SizePlus.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-SizePlus.Text = "+"
-SizePlus.TextColor3 = Color3.new(1, 1, 1)
-SizePlus.Parent = Frame
-
-local AimbotBtn = Instance.new("TextButton")
-AimbotBtn.Size = UDim2.new(0, 200, 0, 30)
-AimbotBtn.Position = UDim2.new(0, 25, 0, 160)
-AimbotBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-AimbotBtn.Text = "Aimbot: OFF"
-AimbotBtn.TextColor3 = Color3.new(1, 1, 1)
-AimbotBtn.Parent = Frame
-
--- Lógica de Botones
-HitboxBtn.MouseButton1Click:Connect(function()
-    hitboxEnabled = not hitboxEnabled
-    HitboxBtn.Text = "Hitbox: " .. (hitboxEnabled and "ON" or "OFF")
-    HitboxBtn.BackgroundColor3 = hitboxEnabled and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(40, 40, 40)
-    
-    if not hitboxEnabled then
-        for p, box in pairs(ghostHitboxes) do
-            if box then box:Destroy() end
-        end
-        ghostHitboxes = {}
-    end
-end)
-
-SizeMinus.MouseButton1Click:Connect(function()
-    hitboxSize = math.max(1, hitboxSize - 1)
-    SizeLabel.Text = "Tamaño: " .. hitboxSize
-end)
-
-SizePlus.MouseButton1Click:Connect(function()
-    hitboxSize = math.min(20, hitboxSize + 1)
-    SizeLabel.Text = "Tamaño: " .. hitboxSize
-end)
-
-AimbotBtn.MouseButton1Click:Connect(function()
-    aimbotEnabled = not aimbotEnabled
-    AimbotBtn.Text = "Aimbot: " .. (aimbotEnabled and "ON" or "OFF")
-    AimbotBtn.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(40, 40, 40)
-end)
+-- Línea divisoria
+local Line = Instance.new("Frame")
+Line.Size = UDim2.new(1, 0, 0, 1)
+Line.Position = UDim2.new(0, 0, 0, 35)
+Line.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Line.Parent = MainFrame
 
 -- ==========================================
--- LÓGICA DE LA HITBOX CUADRADA
+-- PANEL IZQUIERDO (Categorías)
 -- ==========================================
-RunService.Heartbeat:Connect(function()
-    if not hitboxEnabled then return end
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
-            
-            if hrp and humanoid and humanoid.Health > 0 then
-                if not ghostHitboxes[p] or not ghostHitboxes[p].Parent then
-                    local box = Instance.new("Part")
-                    box.Name = "BoxHitbox"
-                    box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    box.Transparency = 0.5 -- Semi-transparente para que lo veas
-                    box.Color = hitboxColor
-                    box.Material = Enum.Material.Neon
-                    box.CanCollide = false
-                    box.CanQuery = true
-                    box.CanTouch = true
-                    box.Massless = true
-                    box.Anchored = true 
-                    box.Parent = workspace
-                    
-                    ghostHitboxes[p] = box
-                end
-                
-                local box = ghostHitboxes[p]
-                if box then
-                    box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    box.CFrame = hrp.CFrame 
-                end
+local LeftPanel = Instance.new("Frame")
+LeftPanel.Size = UDim2.new(0, 150, 1, -35)
+LeftPanel.Position = UDim2.new(0, 0, 0, 36)
+LeftPanel.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+LeftPanel.BorderSizePixel = 0
+LeftPanel.Parent = MainFrame
+
+local function createCategory(text, yPos)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 30)
+    btn.Position = UDim2.fromOffset(10, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+    btn.Text = "   " .. text
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = LeftPanel
+    return btn
+end
+
+local tabAimbot = createCategory("Aimbot", 10)
+local tabVisuals = createCategory("Visuals", 50)
+local tabScripts = createCategory("Scripts", 90)
+local tabMisc = createCategory("Miscellaneous", 130)
+
+-- ==========================================
+-- PANEL CENTRAL (Configuraciones)
+-- ==========================================
+local CenterPanel = Instance.new("Frame")
+CenterPanel.Size = UDim2.new(0, 350, 1, -35)
+CenterPanel.Position = UDim2.new(0, 150, 0, 36)
+CenterPanel.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+CenterPanel.BorderSizePixel = 0
+CenterPanel.Parent = MainFrame
+
+-- Función para crear el diseño de un Switch (Como en NeverBlox)
+local function createSwitch(parent, text, yPos, callback)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, -20, 0, 30)
+    container.Position = UDim2.fromOffset(10, yPos)
+    container.BackgroundTransparency = 1
+    container.Parent = parent
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0.7, 0, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 13
+    lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = container
+
+    -- Switch visual
+    local switchBg = Instance.new("Frame")
+    switchBg.Size = UDim2.fromOffset(34, 18)
+    switchBg.Position = UDim2.new(1, -34, 0.5, -9)
+    switchBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    switchBg.Parent = container
+    Instance.new("UICorner", switchBg).CornerRadius = UDim.new(1, 0)
+
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.fromOffset(14, 14)
+    dot.Position = UDim2.fromOffset(2, 2)
+    dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    dot.Parent = switchBg
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+
+    local isOn = false
+    switchBg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isOn = not isOn
+            if isOn then
+                switchBg.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+                dot.Position = UDim2.fromOffset(18, 2)
+            else
+                switchBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                dot.Position = UDim2.fromOffset(2, 2)
             end
+            if callback then callback(isOn) end
         end
-    end
-end)
+    end)
+end
+
+-- ==========================================
+-- PÁGINA: AIMBOT
+-- ==========================================
+createSwitch(CenterPanel, "Enable Aimbot", 10, function(state) aimbotEnabled = state end)
+createSwitch(CenterPanel, "Team Check", 50, function(state) teamCheck = state end)
+createSwitch(CenterPanel, "Show FOV", 90, function(state) end) -- Solo visual
+
+-- Slider visual para FOV (Simulado)
+local fovLabel = Instance.new("TextLabel")
+fovLabel.Size = UDim2.new(1, -20, 0, 20)
+fovLabel.Position = UDim2.fromOffset(10, 130)
+fovLabel.BackgroundTransparency = 1
+fovLabel.Text = "FOV: 150"
+fovLabel.Font = Enum.Font.Gotham
+fovLabel.TextSize = 12
+fovLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+fovLabel.TextXAlignment = Enum.TextXAlignment.Left
+fovLabel.Parent = CenterPanel
+
+local fovBar = Instance.new("Frame")
+fovBar.Size = UDim2.new(1, -20, 0, 4)
+fovBar.Position = UDim2.fromOffset(10, 155)
+fovBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+fovBar.Parent = CenterPanel
+Instance.new("UICorner", fovBar).CornerRadius = UDim.new(1, 0)
+
+local fovFill = Instance.new("Frame")
+fovFill.Size = UDim2.new(0.5, 0, 1, 0)
+fovFill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+fovFill.Parent = fovBar
+Instance.new("UICorner", fovFill).CornerRadius = UDim.new(1, 0)
+
+-- ==========================================
+-- PANEL DERECHO (Debug Log)
+-- ==========================================
+local RightPanel = Instance.new("Frame")
+RightPanel.Size = UDim2.new(0, 200, 1, -35)
+RightPanel.Position = UDim2.new(0, 500, 0, 36)
+RightPanel.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+RightPanel.BorderSizePixel = 0
+RightPanel.Parent = MainFrame
+
+local DebugTitle = Instance.new("TextLabel")
+DebugTitle.Size = UDim2.new(1, -20, 0, 30)
+DebugTitle.Position = UDim2.fromOffset(10, 5)
+DebugTitle.BackgroundTransparency = 1
+DebugTitle.Text = "Debug Log"
+DebugTitle.Font = Enum.Font.GothamBold
+DebugTitle.TextSize = 12
+DebugTitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+DebugTitle.TextXAlignment = Enum.TextXAlignment.Left
+DebugTitle.Parent = RightPanel
+
+local DebugText = Instance.new("TextLabel")
+DebugText.Size = UDim2.new(1, -20, 1, -40)
+DebugText.Position = UDim2.fromOffset(10, 35)
+DebugText.BackgroundTransparency = 1
+DebugText.Text = "Roblox: Connected\nMode: Off\nPlayers cached: " .. #Players:GetPlayers()
+DebugText.Font = Enum.Font.Code
+DebugText.TextSize = 11
+DebugText.TextColor3 = Color3.fromRGB(0, 200, 100)
+DebugText.TextXAlignment = Enum.TextXAlignment.Left
+DebugText.TextYAlignment = Enum.TextYAlignment.Top
+DebugText.Parent = RightPanel
 
 -- ==========================================
 -- LÓGICA DEL AIMBOT
 -- ==========================================
+local fovCircle = Instance.new("Frame")
+fovCircle.Size = UDim2.fromOffset(fovRadius * 2, fovRadius * 2)
+fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+fovCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+fovCircle.BackgroundTransparency = 1
+fovCircle.BorderSizePixel = 0
+fovCircle.Parent = ScreenGui
+Instance.new("UICorner", fovCircle).CornerRadius = UDim.new(1, 0)
+local fovStroke = Instance.new("UIStroke", fovCircle)
+fovStroke.Color = Color3.fromRGB(255, 255, 255)
+fovStroke.Thickness = 1
+fovCircle.Visible = false
+
 RunService.RenderStepped:Connect(function()
+    -- Actualizar Debug Log
+    DebugText.Text = "Roblox: Connected\nMode: " .. (aimbotEnabled and "Aimbot" or "Off") .. "\nPlayers cached: " .. #Players:GetPlayers()
+
+    -- Actualizar Círculo FOV
+    fovCircle.Visible = aimbotEnabled
+    if fovCircle.Visible then
+        fovCircle.Size = UDim2.fromOffset(fovRadius * 2, fovRadius * 2)
+    end
+
     if not aimbotEnabled then return end
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     
     local closestTarget = nil
     local shortestDist = math.huge
-    local myPos = Camera.CFrame.Position
-    
+    local mousePos = UserInputService:GetMouseLocation()
+
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
+            if teamCheck and LocalPlayer.Team == p.Team then continue end
+            
             local enemyHum = p.Character:FindFirstChildOfClass("Humanoid")
             if enemyHum and enemyHum.Health > 0 then
-                local head = p.Character:FindFirstChild("Head")
-                if head then
-                    local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                local part = p.Character:FindFirstChild(aimbotTargetPart)
+                if part then
+                    local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
                     if onScreen then
-                        local dist = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).Magnitude
-                        if dist < shortestDist then
+                        local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                        if dist < shortestDist and dist <= fovRadius then
                             shortestDist = dist
-                            closestTarget = head
+                            closestTarget = part
                         end
                     end
                 end
@@ -184,9 +279,21 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-Players.PlayerRemoving:Connect(function(p)
-    if ghostHitboxes[p] then
-        ghostHitboxes[p]:Destroy()
-        ghostHitboxes[p] = nil
-    end
+-- ==========================================
+-- CAMBIO DE PESTAÑAS BÁSICO
+-- ==========================================
+tabAimbot.MouseButton1Click:Connect(function()
+    tabAimbot.TextColor3 = Color3.fromRGB(0, 150, 255)
+    tabVisuals.TextColor3 = Color3.fromRGB(200, 200, 200)
+    tabScripts.TextColor3 = Color3.fromRGB(200, 200, 200)
+    tabMisc.TextColor3 = Color3.fromRGB(200, 200, 200)
 end)
+
+tabVisuals.MouseButton1Click:Connect(function()
+    tabAimbot.TextColor3 = Color3.fromRGB(200, 200, 200)
+    tabVisuals.TextColor3 = Color3.fromRGB(0, 150, 255)
+    tabScripts.TextColor3 = Color3.fromRGB(200, 200, 200)
+    tabMisc.TextColor3 = Color3.fromRGB(200, 200, 200)
+end)
+
+print("NeverBlox UI Clone Cargada correctamente.")
