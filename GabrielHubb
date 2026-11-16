@@ -1,5 +1,5 @@
 -- ==========================================
--- GABRIELITOXIT - SB DESARROLLO BYPASS
+-- GABRIELITOXIT - ANTI-BLOQUEO DE CLICS
 -- ==========================================
 
 local Players = game:GetService("Players")
@@ -8,16 +8,26 @@ local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- 1. PONER LA UI EN PLAYER GUI (Oculta del anti-cheat)
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SettingsGui" -- Nombre falso para que parezca del juego
+ScreenGui.Name = "SettingsGui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.DisplayOrder = 999999
 ScreenGui.Parent = PlayerGui
 
--- 2. VARIABLES
+-- LABEL DE DIAGNÓSTICO (Para saber si el clic llega)
+local DebugLabel = Instance.new("TextLabel")
+DebugLabel.Size = UDim2.new(0, 300, 0, 30)
+DebugLabel.Position = UDim2.new(0, 10, 0, 10)
+DebugLabel.BackgroundColor3 = Color3.new(0, 0, 0)
+DebugLabel.BackgroundTransparency = 0.5
+DebugLabel.TextColor3 = Color3.new(1, 1, 0)
+DebugLabel.Font = Enum.Font.GothamBold
+DebugLabel.TextSize = 14
+DebugLabel.Text = "Esperando clic..."
+DebugLabel.Parent = ScreenGui
+
 local Theme = {
     Background = Color3.fromRGB(25, 25, 25),
     Panel = Color3.fromRGB(40, 40, 40),
@@ -33,7 +43,6 @@ local hitboxTransparency = 0
 local espObjects = {}
 local originalSizes = {}
 
--- 3. INTERFAZ
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 350, 0, 300)
 MainFrame.Position = UDim2.new(0.5, -175, 0.5, -150)
@@ -52,16 +61,16 @@ TopBar.Parent = MainFrame
 local TitleText = Instance.new("TextLabel")
 TitleText.Size = UDim2.new(1, -90, 1, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "  GabrielitoXit [SB]"
+TitleText.Text = "  GabrielitoXit [Anti-Click]"
 TitleText.TextColor3 = Theme.TextColor
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextSize = 13
 TitleText.Parent = TopBar
 
--- BOTONES DE VENTANA (CON DETECCIÓN DE CLIC POR POSICIÓN)
-local function createTopButton(text, posX, color)
+local function createTopButton(text, posX, color, name)
     local btn = Instance.new("TextButton")
+    btn.Name = name
     btn.Size = UDim2.new(0, 30, 1, 0)
     btn.Position = UDim2.new(1, posX, 0, 0)
     btn.BackgroundTransparency = 1
@@ -73,9 +82,9 @@ local function createTopButton(text, posX, color)
     return btn
 end
 
-local CloseBtn = createTopButton("X", 0, Theme.Red)
-local MaxBtn = createTopButton("□", -30, Theme.TextColor)
-local MinBtn = createTopButton("-", -60, Theme.TextColor)
+local CloseBtn = createTopButton("X", 0, Theme.Red, "CloseBtn")
+local MaxBtn = createTopButton("□", -30, Theme.TextColor, "MaxBtn")
+local MinBtn = createTopButton("-", -60, Theme.TextColor, "MinBtn")
 
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Size = UDim2.new(1, 0, 1, -30)
@@ -83,7 +92,6 @@ ContentFrame.Position = UDim2.new(0, 0, 0, 30)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
--- Pestañas
 local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(1, 0, 0, 30)
 TabBar.BackgroundColor3 = Theme.Panel
@@ -91,6 +99,7 @@ TabBar.BackgroundTransparency = 0.5
 TabBar.Parent = ContentFrame
 
 local HitboxBtn = Instance.new("TextButton")
+HitboxBtn.Name = "TabHitbox"
 HitboxBtn.Size = UDim2.new(0.5, 0, 1, 0)
 HitboxBtn.BackgroundTransparency = 1
 HitboxBtn.Text = "Hitbox"
@@ -100,6 +109,7 @@ HitboxBtn.TextSize = 12
 HitboxBtn.Parent = TabBar
 
 local ESPBtn = Instance.new("TextButton")
+ESPBtn.Name = "TabESP"
 ESPBtn.Size = UDim2.new(0.5, 0, 1, 0)
 ESPBtn.Position = UDim2.new(0.5, 0, 0, 0)
 ESPBtn.BackgroundTransparency = 1
@@ -126,43 +136,58 @@ ESPTab.CanvasSize = UDim2.new(0, 0, 0, 400)
 ESPTab.Parent = ContentFrame
 
 -- ==========================================
--- DETECCIÓN DE CLICS POR POSICIÓN (ANTI-CHEAT BYPASS)
+-- SISTEMA DE CLIC GLOBAL (ANTI-BLOQUEO)
 -- ==========================================
-local function safeClick(btn, callback)
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            local mousePos = UserInputService:GetMouseLocation()
-            local pos = btn.AbsolutePosition
-            local size = btn.AbsoluteSize
-            
-            if mousePos.X >= pos.X and mousePos.X <= pos.X + size.X and
-               mousePos.Y >= pos.Y and mousePos.Y <= pos.Y + size.Y then
-                callback()
-            end
-        end
-    end)
+local buttons = {} -- Aquí guardamos todos los botones y sus acciones
+
+local function registerButton(btn, callback, name)
+    btn.Name = name
+    table.insert(buttons, {btn = btn, callback = callback, name = name})
 end
 
--- Aplicar detección segura a los botones
-safeClick(HitboxBtn, function()
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end -- Ignorar clics en la UI del juego
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        local mousePos = UserInputService:GetMouseLocation()
+        
+        for _, data in ipairs(buttons) do
+            local btn = data.btn
+            if btn.Visible and btn.Parent and btn.Parent.Parent then -- Verificar que el botón exista y sea visible
+                local pos = btn.AbsolutePosition
+                local size = btn.AbsoluteSize
+                
+                -- Calcular si el clic está dentro del botón
+                if mousePos.X >= pos.X and mousePos.X <= pos.X + size.X and
+                   mousePos.Y >= pos.Y and mousePos.Y <= pos.Y + size.Y then
+                    
+                    DebugLabel.Text = "CLICK DETECTADO EN: " .. data.name
+                    task.spawn(data.callback)
+                    break
+                end
+            end
+        end
+    end
+end)
+
+-- Registrar botones de pestañas
+registerButton(HitboxBtn, function()
     HitboxTab.Visible = true; ESPTab.Visible = false
     HitboxBtn.TextColor3 = Theme.Green; ESPBtn.TextColor3 = Theme.TextColor
-end)
+end, "Tab Hitbox")
 
-safeClick(ESPBtn, function()
+registerButton(ESPBtn, function()
     HitboxTab.Visible = false; ESPTab.Visible = true
     HitboxBtn.TextColor3 = Theme.TextColor; ESPBtn.TextColor3 = Theme.Green
-end)
+end, "Tab ESP")
 
-safeClick(CloseBtn, function() ScreenGui:Destroy() end)
-safeClick(MinBtn, function() 
+registerButton(CloseBtn, function() ScreenGui:Destroy() end, "Cerrar")
+registerButton(MinBtn, function() 
     ContentFrame.Visible = not ContentFrame.Visible
     MainFrame.Size = ContentFrame.Visible and UDim2.new(0, 350, 0, 300) or UDim2.new(0, 350, 0, 30)
-end)
-safeClick(MaxBtn, function() 
+end, "Minimizar")
+registerButton(MaxBtn, function() 
     MainFrame.Size = MainFrame.Size.Y.Scale == 0 and UDim2.new(0, 500, 0, 400) or UDim2.new(0, 350, 0, 300)
-end)
+end, "Maximizar")
 
 -- ==========================================
 -- FUNCIONES DE CREACIÓN
@@ -176,15 +201,14 @@ local function createLabel(parent, text, size, pos, color)
     return lbl
 end
 
-local function createButton(parent, text, size, pos, callback)
+local function createButton(parent, text, size, pos, callback, name)
     local btn = Instance.new("TextButton")
+    btn.Name = name or "Btn"
     btn.Size = size; btn.Position = pos
     btn.BackgroundColor3 = Theme.Panel; btn.TextColor3 = Theme.TextColor
     btn.Font = Enum.Font.GothamSemibold; btn.TextSize = 12
     btn.Text = text; btn.BorderSizePixel = 0; btn.Parent = parent
-    btn.AutoButtonColor = true
-    
-    safeClick(btn, callback) -- Usar la detección segura
+    registerButton(btn, callback, name or text)
     return btn
 end
 
@@ -209,7 +233,7 @@ local function createToggle(parent, title, yPos)
             end
             originalSizes = {}
         end
-    end)
+    end, "Toggle " .. title)
     
     btn.BackgroundColor3 = Toggles[title] and Theme.Green or Theme.Panel
     btn.TextColor3 = Toggles[title] and Theme.Background or Theme.TextColor
@@ -226,24 +250,24 @@ local sizeLabel = createLabel(HitboxTab, "Size Multiplier: " .. hitboxSize, UDim
 createButton(HitboxTab, "-", UDim2.new(0, 35, 0, 30), UDim2.new(0, 160, 0, 95), function()
     hitboxSize = math.max(1, hitboxSize - 0.1)
     sizeLabel.Text = "Size Multiplier: " .. string.format("%.1f", hitboxSize)
-end)
+end, "Hitbox Size -")
 
 createButton(HitboxTab, "+", UDim2.new(0, 35, 0, 30), UDim2.new(0, 205, 0, 95), function()
     hitboxSize = math.min(10, hitboxSize + 0.1)
     sizeLabel.Text = "Size Multiplier: " .. string.format("%.1f", hitboxSize)
-end)
+end, "Hitbox Size +")
 
 local transLabel = createLabel(HitboxTab, "Transparency: " .. hitboxTransparency .. "%", UDim2.new(0, 200, 0, 25), UDim2.new(0, 15, 0, 150), Theme.TextColor)
 
 createButton(HitboxTab, "-", UDim2.new(0, 35, 0, 30), UDim2.new(0, 160, 0, 145), function()
     hitboxTransparency = math.max(0, hitboxTransparency - 10)
     transLabel.Text = "Transparency: " .. hitboxTransparency .. "%"
-end)
+end, "Hitbox Trans -")
 
 createButton(HitboxTab, "+", UDim2.new(0, 35, 0, 30), UDim2.new(0, 205, 0, 145), function()
     hitboxTransparency = math.min(100, hitboxTransparency + 10)
     transLabel.Text = "Transparency: " .. hitboxTransparency .. "%"
-end)
+end, "Hitbox Trans +")
 
 createLabel(ESPTab, "ESP Settings", UDim2.new(0, 200, 0, 35), UDim2.new(0, 10, 0, 10), Theme.Green)
 createToggle(ESPTab, "ESP Frame", 50)
@@ -267,7 +291,7 @@ local colorBtn = createButton(ESPTab, "Green", UDim2.new(0, 120, 0, 30), UDim2.n
     espColor = colors[colorIndex][2]
     colorBtn.BackgroundColor3 = espColor
     colorBtn.TextColor3 = Theme.Background
-end)
+end, "Color Change")
 colorBtn.BackgroundColor3 = espColor
 colorBtn.TextColor3 = Theme.Background
 
@@ -333,7 +357,7 @@ task.spawn(function()
                     highlight.FillTransparency = 1 
                     highlight.OutlineTransparency = 0
                     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                    highlight.Parent = PlayerGui -- Oculto en PlayerGui
+                    highlight.Parent = PlayerGui
                     espObjects[player].Highlight = highlight
 
                     local billboard = Instance.new("BillboardGui")
@@ -341,7 +365,7 @@ task.spawn(function()
                     billboard.Size = UDim2.new(0, 200, 0, 50)
                     billboard.StudsOffset = Vector3.new(0, 2.5, 0)
                     billboard.AlwaysOnTop = true
-                    billboard.Parent = PlayerGui -- Oculto en PlayerGui
+                    billboard.Parent = PlayerGui
                     
                     local nameLabel = Instance.new("TextLabel")
                     nameLabel.Size = UDim2.new(1, 0, 1, 0)
