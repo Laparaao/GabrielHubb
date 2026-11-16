@@ -1,42 +1,21 @@
 -- ==========================================
--- GABRIELITOXIT - MODO PRO (ANTI-FALLOS)
+-- GABRIELITOXIT - OPTIMIZADO PARA SOLARA
 -- ==========================================
 
--- 1. DETECCIÓN DE EJECUTOR Y ENTORNO
-local isDelta = identifyexecutor and string.find(string.lower(identifyexecutor()), "delta") ~= nil
-local isSolara = identifyexecutor and string.find(string.lower(identifyexecutor()), "solara") ~= nil
-local isXeno = identifyexecutor and string.find(string.lower(identifyexecutor()), "xeno") ~= nil
-
-print("Ejecutor detectado - Delta:", isDelta, "| Solara:", isSolara, "| Xeno:", isXeno)
-
--- 2. SERVICIOS
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- 3. PADRE DE LA UI (A PRUEBA DE BALAS)
-local function getParent()
-    -- Intentamos gethui primero (Delta/Solara)
-    local success, hui = pcall(function() return gethui() end)
-    if success and hui then return hui end
-    
-    -- Si falla, usamos CoreGui (Xeno / Universal)
-    local success2, cg = pcall(function() return game:GetService("CoreGui") end)
-    if success2 and cg then return cg end
-    
-    -- Último recurso: PlayerGui
-    return LocalPlayer:WaitForChild("PlayerGui")
-end
-
+-- SOLARA FIX: Forzar CoreGui directamente para que los clics funcionen
+local CoreGui = game:GetService("CoreGui")
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GabrielitoXit_Pro"
+ScreenGui.Name = "GabrielitoXit_Solara"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 999999 -- Capa superior para que los clics funcionen
-ScreenGui.Parent = getParent()
+ScreenGui.DisplayOrder = 999999 -- Capa superior
+ScreenGui.Parent = CoreGui
 
--- 4. VARIABLES GLOBALES
 local Theme = {
     Background = Color3.fromRGB(25, 25, 25),
     Panel = Color3.fromRGB(40, 40, 40),
@@ -45,7 +24,6 @@ local Theme = {
     Red = Color3.fromRGB(255, 60, 60)
 }
 
--- Tablas compartidas
 local Toggles = { ["ESP Frame"] = false, ["ESP Name"] = false, ["Hitbox"] = false }
 local espColor = Theme.Green
 local hitboxSize = 1.5
@@ -54,7 +32,7 @@ local espObjects = {}
 local originalSizes = {}
 
 -- ==========================================
--- 5. INTERFAZ GRÁFICA (A PRUEBA DE CLICS)
+-- INTERFAZ
 -- ==========================================
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 350, 0, 300)
@@ -65,7 +43,6 @@ MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
--- Barra superior
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 30)
 TopBar.BackgroundColor3 = Theme.Panel
@@ -75,14 +52,13 @@ TopBar.Parent = MainFrame
 local TitleText = Instance.new("TextLabel")
 TitleText.Size = UDim2.new(1, -90, 1, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "  GabrielitoXit [PRO]"
+TitleText.Text = "  GabrielitoXit [Solara]"
 TitleText.TextColor3 = Theme.TextColor
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextSize = 13
 TitleText.Parent = TopBar
 
--- Botones de ventana
 local function createTopButton(text, posX, color)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 30, 1, 0)
@@ -106,7 +82,6 @@ ContentFrame.Position = UDim2.new(0, 0, 0, 30)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
--- Pestañas
 local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(1, 0, 0, 30)
 TabBar.BackgroundColor3 = Theme.Panel
@@ -148,7 +123,6 @@ ESPTab.Visible = false
 ESPTab.CanvasSize = UDim2.new(0, 0, 0, 400)
 ESPTab.Parent = ContentFrame
 
--- Eventos de pestañas
 HitboxBtn.MouseButton1Click:Connect(function()
     HitboxTab.Visible = true; ESPTab.Visible = false
     HitboxBtn.TextColor3 = Theme.Green; ESPBtn.TextColor3 = Theme.TextColor
@@ -159,7 +133,6 @@ ESPBtn.MouseButton1Click:Connect(function()
     HitboxBtn.TextColor3 = Theme.TextColor; ESPBtn.TextColor3 = Theme.Green
 end)
 
--- Eventos de ventana
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 MinBtn.MouseButton1Click:Connect(function() 
     ContentFrame.Visible = not ContentFrame.Visible
@@ -170,7 +143,7 @@ MaxBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 6. FUNCIONES DE CREACIÓN
+-- FUNCIONES DE CREACIÓN (SOLARA FIX)
 -- ==========================================
 local function createLabel(parent, text, size, pos, color)
     local lbl = Instance.new("TextLabel")
@@ -189,9 +162,11 @@ local function createButton(parent, text, size, pos, callback)
     btn.Text = text; btn.BorderSizePixel = 0; btn.Parent = parent
     btn.AutoButtonColor = true
     
-    -- EL TRUCO PRO: Usamos task.spawn para que el clic no se congele
-    btn.MouseButton1Click:Connect(function()
-        task.spawn(callback)
+    -- SOLARA FIX: Usar InputBegan que es más confiable en Solara que MouseButton1Click
+    btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            task.spawn(callback)
+        end
     end)
     
     return btn
@@ -225,7 +200,7 @@ local function createToggle(parent, title, yPos)
 end
 
 -- ==========================================
--- 7. CONTENIDO HITBOX
+-- CONTENIDO HITBOX
 -- ==========================================
 createLabel(HitboxTab, "Hitbox Settings", UDim2.new(0, 200, 0, 35), UDim2.new(0, 10, 0, 10), Theme.Green)
 createToggle(HitboxTab, "Hitbox", 50) 
@@ -255,7 +230,7 @@ createButton(HitboxTab, "+", UDim2.new(0, 35, 0, 30), UDim2.new(0, 205, 0, 145),
 end)
 
 -- ==========================================
--- 8. CONTENIDO ESP
+-- CONTENIDO ESP
 -- ==========================================
 createLabel(ESPTab, "ESP Settings", UDim2.new(0, 200, 0, 35), UDim2.new(0, 10, 0, 10), Theme.Green)
 createToggle(ESPTab, "ESP Frame", 50)
@@ -284,10 +259,10 @@ colorBtn.BackgroundColor3 = espColor
 colorBtn.TextColor3 = Theme.Background
 
 -- ==========================================
--- 9. HITBOX LOOP (EN HILO SEPARADO)
+-- LÓGICA DEL HITBOX
 -- ==========================================
 task.spawn(function()
-    while task.wait() do
+    while task.wait(0.1) do -- En Solara, wait más alto evita lag
         if Toggles["Hitbox"] then
             for _, player in pairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character then
@@ -315,10 +290,10 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 10. ESP LOOP (EN HILO SEPARADO)
+-- LÓGICA DEL ESP
 -- ==========================================
 task.spawn(function()
-    while task.wait() do
+    while task.wait(0.1) do
         local espActive = Toggles["ESP Frame"]
         local nameActive = Toggles["ESP Name"]
 
@@ -391,7 +366,6 @@ task.spawn(function()
     end
 end)
 
--- Limpieza
 Players.PlayerRemoving:Connect(function(player)
     if espObjects[player] then
         if espObjects[player].Highlight then espObjects[player].Highlight:Destroy() end
