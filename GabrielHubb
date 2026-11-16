@@ -118,11 +118,6 @@ label(Home, "Dashboard",
 label(Home, "Welcome to GabrielHub V2",
     UDim2.fromOffset(350, 25),
     UDim2.fromOffset(10, 55))
-
-label(Home, "Modern interface • Neon Edition",
-    UDim2.fromOffset(350, 25),
-    UDim2.fromOffset(10, 85), Muted)
-
 local Avatar = Instance.new("ImageLabel")
 Avatar.Size = UDim2.fromOffset(75, 75)
 Avatar.Position = UDim2.fromOffset(10, 130)
