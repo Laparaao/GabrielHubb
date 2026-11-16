@@ -1,505 +1,228 @@
+-- GabrielHub V2
+-- UI Dashboard - Roblox Studio
+
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local u6 = false
-local u7 = false
-local n1 = 8
-local color3 = Color3.fromRGB(0, 255, 0)
-local u10 = false
-local u11 = false
-local u12 = false
-local t1 = {}
-local ScreenGui = Instance.new("ScreenGui")
 
-ScreenGui.Name = "GabrielHub"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.Parent = PlayerGui
+local Green = Color3.fromRGB(0, 255, 110)
+local Background = Color3.fromRGB(13, 15, 17)
+local Panel = Color3.fromRGB(22, 25, 27)
+local TextColor = Color3.fromRGB(235, 240, 238)
 
-local Frame = Instance.new("Frame")
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "GabrielHubV2"
+Gui.ResetOnSpawn = false
+Gui.Parent = PlayerGui
 
-Frame.Size = UDim2.fromOffset(300, 390)
-Frame.Position = UDim2.new(0.5, -150, 0.5, -195)
-Frame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-Frame.BorderSizePixel = 0
-Frame.Active = true
-Frame.Draggable = true
-Frame.Parent = ScreenGui
+local Main = Instance.new("Frame")
+Main.Size = UDim2.fromOffset(650, 430)
+Main.Position = UDim2.new(0.5, -325, 0.5, -215)
+Main.BackgroundColor3 = Background
+Main.BorderSizePixel = 0
+Main.Parent = Gui
 
-local UICorner = Instance.new("UICorner")
-
-UICorner.CornerRadius = UDim.new(0, 12)
-UICorner.Parent = Frame
-
-local TextLabel = Instance.new("TextLabel")
-
-TextLabel.Size = UDim2.new(1, -50, 0, 40)
-TextLabel.Position = UDim2.fromOffset(12, 5)
-TextLabel.BackgroundTransparency = 1
-TextLabel.Text = "GabrielXiter"
-TextLabel.Font = Enum.Font.GothamBold
-TextLabel.TextSize = 20
-TextLabel.TextColor3 = color3
-TextLabel.TextXAlignment = Enum.TextXAlignment.Left
-TextLabel.Parent = Frame
-
-local TextButton = Instance.new("TextButton")
-
-TextButton.Size = UDim2.fromOffset(35, 35)
-TextButton.Position = UDim2.new(1, -42, 0, 5)
-TextButton.BackgroundTransparency = 1
-TextButton.Text = "X"
-TextButton.Font = Enum.Font.GothamBold
-TextButton.TextSize = 18
-TextButton.TextColor3 = Color3.fromRGB(255, 80, 80)
-TextButton.Parent = Frame
-
-local function createTextButton(p1, p2)
-	local TextButton2 = Instance.new("TextButton")
-
-	TextButton2.Size = UDim2.new(1, -20, 0, 34)
-	TextButton2.Position = UDim2.fromOffset(10, p2)
-	TextButton2.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
-	TextButton2.BorderSizePixel = 0
-	TextButton2.Text = p1
-	TextButton2.Font = Enum.Font.GothamBold
-	TextButton2.TextSize = 13
-	TextButton2.TextColor3 = color3
-	TextButton2.Parent = Frame
-
-	local UICorner2 = Instance.new("UICorner")
-
-	UICorner2.CornerRadius = UDim.new(0, 8)
-	UICorner2.Parent = TextButton2
-
-	return TextButton2
+local function corner(obj, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius)
+    c.Parent = obj
 end
 
-local v22 = createTextButton("Hitbox  •  OFF", 50)
-local v23 = createTextButton("Hitbox invisible  •  OFF", 91)
-local TextLabel2 = Instance.new("TextLabel")
+corner(Main, 12)
 
-TextLabel2.Size = UDim2.new(1, -20, 0, 20)
-TextLabel2.Position = UDim2.fromOffset(10, 132)
-TextLabel2.BackgroundTransparency = 1
-TextLabel2.Text = "Tamaño Hitbox: 8"
-TextLabel2.Font = Enum.Font.Gotham
-TextLabel2.TextSize = 12
-TextLabel2.TextColor3 = color3
-TextLabel2.Parent = Frame
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 155, 1, 0)
+Sidebar.BackgroundColor3 = Color3.fromRGB(17, 20, 21)
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = Main
+corner(Sidebar, 12)
 
-local v25 = createTextButton("−", 154)
+local Brand = Instance.new("TextLabel")
+Brand.Size = UDim2.new(1, -15, 0, 55)
+Brand.Position = UDim2.fromOffset(12, 8)
+Brand.BackgroundTransparency = 1
+Brand.Text = "GABRIELHUB"
+Brand.TextColor3 = Green
+Brand.Font = Enum.Font.GothamBold
+Brand.TextSize = 18
+Brand.Parent = Sidebar
 
-v25.Size = UDim2.new(0.45, 0, 0, 30)
+local Version = Instance.new("TextLabel")
+Version.Size = UDim2.new(1, 0, 0, 20)
+Version.Position = UDim2.fromOffset(0, 48)
+Version.BackgroundTransparency = 1
+Version.Text = "VERSION 2.0"
+Version.TextColor3 = Color3.fromRGB(120, 130, 125)
+Version.Font = Enum.Font.Gotham
+Version.TextSize = 10
+Version.Parent = Sidebar
 
-local v26 = createTextButton("+", 154)
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -170, 1, -20)
+Content.Position = UDim2.fromOffset(160, 10)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
 
-v26.Position = UDim2.new(0.55, 0, 0, 154)
-v26.Size = UDim2.new(0.45, 0, 0, 30)
+local Pages = {}
 
-local v27 = createTextButton("Infinite Jump  •  OFF", 197)
-local v28 = createTextButton("No Clip  •  OFF", 238)
-local v29 = createTextButton("Movimiento tela  •  OFF", 279)
-local ImageButton = Instance.new("ImageButton")
-
-ImageButton.Size = UDim2.fromOffset(60, 60)
-ImageButton.Position = UDim2.fromOffset(15, 160)
-ImageButton.BackgroundTransparency = 1
-ImageButton.BorderSizePixel = 0
-ImageButton.Image = "rbxassetid://98807466984428"
-ImageButton.ScaleType = Enum.ScaleType.Fit
-ImageButton.Visible = false
-ImageButton.Parent = ScreenGui
-
-local v31 = nil
-
-local function v32(p3)
-	if p3 == LocalPlayer then
-		return
-	end
-
-	local v33 = not u6
-
-	if v33 then
-		v33 = not u7
-	end
-
-	if v33 then
-		v31(p3)
-
-		return
-	end
-
-	local Character = p3.Character
-
-	if not Character then
-		v31(p3)
-
-		return
-	end
-
-	local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-	local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-
-	if not HumanoidRootPart or (not Humanoid or Humanoid.Health <= 0) then
-		v31(p3)
-
-		return
-	end
-
-	local v37 = t1[p3]
-	local Box
-
-	if v37 then
-		Box = v37.Box
-
-		if Box then
-			Box = v37.Box.Parent == Character
-		end
-	else
-		Box = v37
-	end
-
-	if not Box then
-		v31(p3)
-
-		local Part = Instance.new("Part")
-
-		Part.Name = "GabrielHitbox"
-		Part.Size = Vector3.new(n1, n1, n1)
-		Part.CFrame = HumanoidRootPart.CFrame
-		Part.Color = color3
-		Part.Material = Enum.Material.Neon
-		Part.CanCollide = false
-		Part.CanTouch = false
-		Part.CanQuery = true
-		Part.Massless = true
-		Part.Anchored = false
-		Part.CastShadow = false
-
-		if u7 then
-			Part.Transparency = 1
-		else
-			Part.Transparency = 0.8
-		end
-
-		Part.Parent = Character
-
-		local WeldConstraint = Instance.new("WeldConstraint")
-
-		WeldConstraint.Part0 = HumanoidRootPart
-		WeldConstraint.Part1 = Part
-		WeldConstraint.Parent = Part
-
-		local Highlight = Instance.new("Highlight")
-
-		Highlight.Name = "GabrielHitboxESP"
-		Highlight.Adornee = Part
-		Highlight.FillColor = color3
-		Highlight.OutlineColor = color3
-		Highlight.FillTransparency = 0.8
-		Highlight.OutlineTransparency = 0
-		Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-		Highlight.Enabled = not u7
-		Highlight.Parent = Part
-		t1[p3] = {
-			Box = Part,
-			Highlight = Highlight
-		}
-
-		return
-	end
-
-	v37.Box.Size = Vector3.new(n1, n1, n1)
-
-	if u7 then
-		v37.Box.Transparency = 1
-
-		if v37.Highlight then
-			v37.Highlight.Enabled = false
-
-			return
-		else
-			return
-		end
-	end
-
-	v37.Box.Transparency = 0.8
-	v37.Box.Color = color3
-
-	if not v37.Highlight then
-		return
-	end
-
-	v37.Highlight.Enabled = true
-	v37.Highlight.Adornee = v37.Box
-	v37.Highlight.FillColor = color3
-	v37.Highlight.OutlineColor = color3
-	v37.Highlight.FillTransparency = 0.8
-	v37.Highlight.OutlineTransparency = 0
-	v37.Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+local function createPage(name)
+    local page = Instance.new("Frame")
+    page.Name = name
+    page.Size = UDim2.fromScale(1, 1)
+    page.BackgroundTransparency = 1
+    page.Visible = false
+    page.Parent = Content
+    Pages[name] = page
+    return page
 end
 
-v31 = function(p4)
-	local v42 = t1[p4]
-
-	if not v42 then
-		return
-	end
-
-	if v42.Box then
-		pcall(function()
-			v42.Box:Destroy()
-		end)
-	end
-
-	if not v42.Highlight then
-		t1[p4] = nil
-
-		return
-	end
-
-	pcall(function()
-		v42.Highlight:Destroy()
-	end)
-	t1[p4] = nil
+local function label(parent, text, size, position, color)
+    local obj = Instance.new("TextLabel")
+    obj.Size = size
+    obj.Position = position
+    obj.BackgroundTransparency = 1
+    obj.Text = text
+    obj.TextColor3 = color or TextColor
+    obj.Font = Enum.Font.GothamBold
+    obj.TextSize = 15
+    obj.TextXAlignment = Enum.TextXAlignment.Left
+    obj.Parent = parent
+    return obj
 end
 
-local function v43()
-	local v44 = not u6
-	local v45
-
-	if not v44 then
-		if not v44 then
-			v45 = Players
-
-			for _, player in ipairs(v45.GetPlayers(v45)) do
-				if player ~= LocalPlayer then
-					v32(player)
-				end
-			end
-		end
-
-		return
-	end
-
-	v44 = not u7
-
-	if not v44 then
-		v45 = Players
-
-		for _, player in ipairs(v45.GetPlayers(v45)) do
-			if player ~= LocalPlayer then
-				v32(player)
-			end
-		end
-	end
+local function button(parent, text, position, callback)
+    local obj = Instance.new("TextButton")
+    obj.Size = UDim2.fromOffset(135, 35)
+    obj.Position = position
+    obj.BackgroundColor3 = Panel
+    obj.BorderSizePixel = 0
+    obj.Text = text
+    obj.TextColor3 = TextColor
+    obj.Font = Enum.Font.GothamBold
+    obj.TextSize = 12
+    obj.Parent = parent
+    corner(obj, 7)
+    obj.MouseButton1Click:Connect(callback)
+    return obj
 end
 
-RunService.Heartbeat:Connect(v43)
-v22.MouseButton1Click:Connect(function()
-	u6 = not u6
+local Home = createPage("Home")
+label(Home, "Dashboard", UDim2.fromOffset(300, 35),
+    UDim2.fromOffset(10, 10), Green)
 
-	if u6 then
-		u7 = false
-		v22.Text = "Hitbox  •  ON"
-		v23.Text = "Hitbox invisible  •  OFF"
-	else
-		v22.Text = "Hitbox  •  OFF"
-	end
+label(Home, "Welcome to GabrielHub V2",
+    UDim2.fromOffset(350, 30), UDim2.fromOffset(10, 55))
 
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer then
-			v32(player)
-		end
-	end
-end)
-v23.MouseButton1Click:Connect(function()
-	u7 = not u7
+label(Home, "Modern interface • Neon Edition",
+    UDim2.fromOffset(350, 25), UDim2.fromOffset(10, 90),
+    Color3.fromRGB(140, 150, 145))
 
-	if u7 then
-		u6 = false
-		v22.Text = "Hitbox  •  OFF"
-		v23.Text = "Hitbox invisible  •  ON"
-	else
-		v23.Text = "Hitbox invisible  •  OFF"
-	end
+local Whitelist = createPage("Whitelist")
+label(Whitelist, "Player Whitelist",
+    UDim2.fromOffset(350, 35), UDim2.fromOffset(10, 10), Green)
 
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer then
-			v32(player)
-		end
-	end
-end)
-v25.MouseButton1Click:Connect(function()
-	local v54 = n1 - 1
+label(Whitelist, "Players in your experience",
+    UDim2.fromOffset(350, 25), UDim2.fromOffset(10, 45),
+    Color3.fromRGB(140, 150, 145))
 
-	n1 = math.max(1, v54)
-	TextLabel2.Text = "Tamaño Hitbox: " .. n1
-end)
+local List = Instance.new("ScrollingFrame")
+List.Size = UDim2.new(1, -20, 1, -115)
+List.Position = UDim2.fromOffset(10, 85)
+List.BackgroundColor3 = Panel
+List.BorderSizePixel = 0
+List.ScrollBarThickness = 4
+List.CanvasSize = UDim2.new()
+List.Parent = Whitelist
+corner(List, 8)
 
-local function v55()
-	local v56 = n1 + 1
+local Layout = Instance.new("UIListLayout")
+Layout.Padding = UDim.new(0, 6)
+Layout.Parent = List
 
-	n1 = math.min(45, v56)
-	TextLabel2.Text = "Tamaño Hitbox: " .. n1
+local selected = {}
+
+local function refreshPlayers()
+    for _, item in ipairs(List:GetChildren()) do
+        if item:IsA("Frame") then
+            item:Destroy()
+        end
+    end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local row = Instance.new("Frame")
+            row.Size = UDim2.new(1, -10, 0, 42)
+            row.BackgroundColor3 = Background
+            row.BorderSizePixel = 0
+            row.Parent = List
+            corner(row, 6)
+
+            local name = label(row, player.Name,
+                UDim2.new(0.65, 0, 1, 0),
+                UDim2.fromOffset(10, 0))
+
+            local selectButton = Instance.new("TextButton")
+            selectButton.Size = UDim2.fromOffset(85, 27)
+            selectButton.Position = UDim2.new(1, -95, 0.5, -13)
+            selectButton.BackgroundColor3 =
+                selected[player.UserId] and Green or Panel
+            selectButton.Text =
+                selected[player.UserId] and "SELECTED" or "SELECT"
+            selectButton.TextColor3 =
+                selected[player.UserId] and Background or Green
+            selectButton.Font = Enum.Font.GothamBold
+            selectButton.TextSize = 10
+            selectButton.Parent = row
+            corner(selectButton, 5)
+
+            selectButton.MouseButton1Click:Connect(function()
+                selected[player.UserId] = not selected[player.UserId]
+                if not selected[player.UserId] then
+                    selected[player.UserId] = nil
+                end
+                refreshPlayers()
+            end)
+        end
+    end
+
+    task.defer(function()
+        List.CanvasSize = UDim2.fromOffset(
+            0, Layout.AbsoluteContentSize.Y + 10
+        )
+    end)
 end
 
-v26.MouseButton1Click:Connect(v55)
-v27.MouseButton1Click:Connect(function()
-	u10 = not u10
+local Settings = createPage("Settings")
+label(Settings, "Settings", UDim2.fromOffset(300, 35),
+    UDim2.fromOffset(10, 10), Green)
 
-	if u10 then
-		v27.Text = "Infinite Jump  •  ON"
-	else
-		v27.Text = "Infinite Jump  •  OFF"
-	end
-end)
+label(Settings, "GabrielHub V2",
+    UDim2.fromOffset(300, 25), UDim2.fromOffset(10, 55))
 
-local function v57()
-	if not u10 then
-		return
-	end
-
-	local Character = LocalPlayer.Character
-
-	if not Character then
-		return
-	end
-
-	local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-
-	if not HumanoidRootPart then
-		return
-	end
-
-	HumanoidRootPart.AssemblyLinearVelocity = Vector3.new(HumanoidRootPart.AssemblyLinearVelocity.X, 90, HumanoidRootPart.AssemblyLinearVelocity.Z)
+local function showPage(name)
+    for pageName, page in pairs(Pages) do
+        page.Visible = pageName == name
+    end
+    if name == "Whitelist" then
+        refreshPlayers()
+    end
 end
 
-UserInputService.JumpRequest:Connect(v57)
-v28.MouseButton1Click:Connect(function()
-	u11 = not u11
+local menu = {"Home", "Whitelist", "Settings"}
 
-	if u11 then
-		v28.Text = "No Clip  •  ON"
-	else
-		v28.Text = "No Clip  •  OFF"
-	end
-end)
-
-local function v60()
-	if u11 then
-		local Character = LocalPlayer.Character
-
-		if Character then
-			for _, descendant in ipairs(Character:GetDescendants()) do
-				if descendant:IsA("BasePart") then
-					descendant.CanCollide = false
-				end
-			end
-
-			return
-		else
-			return
-		end
-	end
+for i, name in ipairs(menu) do
+    button(Sidebar, name, UDim2.fromOffset(10, 95 + (i-1)*45),
+        function()
+            showPage(name)
+        end)
 end
 
-RunService.Stepped:Connect(v60)
-v29.MouseButton1Click:Connect(function()
-	u12 = not u12
-
-	if u12 then
-		v29.Text = "Movimiento tela  •  ON"
-	else
-		v29.Text = "Movimiento tela  •  OFF"
-	end
-end)
-
-local function v64()
-	local Character = LocalPlayer.Character
-
-	if not Character then
-		return
-	end
-
-	local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-	local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-
-	if not (Humanoid and HumanoidRootPart) then
-		return
-	end
-
-	if not u12 then
-		return
-	end
-
-	local MoveDirection = Humanoid.MoveDirection
-
-	if not (MoveDirection.Magnitude > 0) then
-		return
-	end
-
-	local vector3 = Vector3.new(MoveDirection.X, 0, MoveDirection.Z)
-
-	if not (vector3.Magnitude > 0) then
-		return
-	end
-
-	local Unit = vector3.Unit
-
-	HumanoidRootPart.AssemblyLinearVelocity = Vector3.new(Unit.X * 21, HumanoidRootPart.AssemblyLinearVelocity.Y, Unit.Z * 21)
-	HumanoidRootPart.CFrame = CFrame.lookAt(HumanoidRootPart.Position, HumanoidRootPart.Position + Unit)
-end
-
-RunService.RenderStepped:Connect(v64)
-
-local function v71(player)
-	if player == LocalPlayer then
-		return
-	end
-
-	player.CharacterAdded:Connect(function()
-		task.wait(0.5)
-
-		if not (u6 or u7) then
-			return
-		end
-
-		v32(player)
-	end)
-
-	if not player.Character then
-		return
-	end
-
-	task.defer(function()
-		if not (u6 or u7) then
-			return
-		end
-
-		v32(player)
-	end)
-end
-
-local v72 = v31
-
-for _, player in ipairs(Players:GetPlayers()) do
-	v71(player)
-end
-
-Players.PlayerAdded:Connect(v71)
+Players.PlayerAdded:Connect(refreshPlayers)
 Players.PlayerRemoving:Connect(function(player)
-	v72(player)
+    selected[player.UserId] = nil
+    refreshPlayers()
 end)
-TextButton.MouseButton1Click:Connect(function()
-	Frame.Visible = false
-	ImageButton.Visible = true
-end)
-ImageButton.MouseButton1Click:Connect(function()
-	Frame.Visible = true
-	ImageButton.Visible = false
-end)
-print("Gabrielhub cargado correctamente")
+
+showPage("Home")
+
+print("GabrielHub V2 loaded")
