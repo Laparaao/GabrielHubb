@@ -1,5 +1,5 @@
 -- ==========================================
--- GABRIELITOXITER - AIMBOT CORREGIDO
+-- GABRIELITOXITER - AIMBOT SINCRONIZADO (MOUSE)
 -- ==========================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -16,47 +16,28 @@ end
 local aimbotEnabled, espEnabled, teamCheck = false, false, true
 local hitboxEnabled = false
 local hitboxSize = 6
-local fovRadius = 150
+local fovRadius = 200
 local targetPart = "Head"
 local hitboxObjects = {}
 local espObjects = {}
 
 -- ==========================================
--- FUNCIÓN ANTI-TEAMKILL (MUY ESTRICTA)
+-- FUNCIÓN ANTI-TEAMKILL
 -- ==========================================
 local function isEnemy(p)
     if p == LocalPlayer then return false end
     if not teamCheck then return true end
-
-    -- 1. Revisión por Team (El sistema normal de Roblox)
     if LocalPlayer.Team ~= nil and p.Team ~= nil then
         if LocalPlayer.Team == p.Team then return false end
     end
-
-    -- 2. Revisión por TeamColor (El color del equipo)
     if LocalPlayer.TeamColor ~= nil and p.TeamColor ~= nil then
         if LocalPlayer.TeamColor == p.TeamColor then return false end
     end
-
-    -- 3. Revisión por Atributo (Muchos juegos usan esto)
-    local myTeamAttr = LocalPlayer:GetAttribute("Team") or LocalPlayer:GetAttribute("team")
-    local pTeamAttr = p:GetAttribute("Team") or p:GetAttribute("team")
-    if myTeamAttr ~= nil and pTeamAttr ~= nil then
-        if myTeamAttr == pTeamAttr then return false end
-    end
-
-    -- 4. Revisión por nombre de equipo (Por si dice "Policia" o "Ladron")
-    if LocalPlayer.Team ~= nil and p.Team ~= nil then
-        local myTeamName = string.lower(LocalPlayer.Team.Name)
-        local pTeamName = string.lower(p.Team.Name)
-        if myTeamName == pTeamName then return false end
-    end
-
     return true
 end
 
 -- ==========================================
--- UI (Igual que antes)
+-- UI
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GabrielitoXiter"
@@ -187,7 +168,6 @@ createSwitch(PageVis, "Enable Hitbox", 50, function(s)
     end
 end)
 
--- Slider Hitbox
 local sizeLabel = Instance.new("TextLabel")
 sizeLabel.Size = UDim2.new(1, -20, 0, 20)
 sizeLabel.Position = UDim2.fromOffset(10, 90)
@@ -226,7 +206,7 @@ btnPlus.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- LÓGICA DEL JUEGO
+-- LÓGICA DEL AIMBOT (SINCRONIZACIÓN DE MOUSE)
 -- ==========================================
 RunService.RenderStepped:Connect(function()
     if aimbotEnabled then
@@ -234,8 +214,8 @@ RunService.RenderStepped:Connect(function()
         if char and char:FindFirstChild("HumanoidRootPart") then
             local closest, dist = nil, math.huge
             local mouse = UserInputService:GetMouseLocation()
+            
             for _, p in ipairs(Players:GetPlayers()) do
-                -- AQUI USAMOS LA NUEVA FUNCIÓN isEnemy()
                 if isEnemy(p) and p.Character then
                     local h = p.Character:FindFirstChild("Humanoid")
                     local part = p.Character:FindFirstChild(targetPart)
@@ -251,16 +231,34 @@ RunService.RenderStepped:Connect(function()
                     end
                 end
             end
-            if closest then Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, closest.Position) end
+            
+            if closest then
+                -- EL TRUCO: Movemos la cámara suavemente para que el juego registre el cambio
+                local targetPos = closest.Position
+                local currentPos = Camera.CFrame.Position
+                local newCFrame = CFrame.lookAt(currentPos, targetPos)
+                
+                -- Interpolación (Lerp) para que no sea un salto brusco y el servidor lo acepte
+                Camera.CFrame = Camera.CFrame:Lerp(newCFrame, 0.5) 
+                
+                -- Además, movemos el mouse virtual para que el clic vaya directo
+                if mousemoverel then
+                    local screenPos = Camera:WorldToViewportPoint(targetPos)
+                    local centerX = Camera.ViewportSize.X / 2
+                    local centerY = Camera.ViewportSize.Y / 2
+                    mousemoverel(screenPos.X - centerX, screenPos.Y - centerY)
+                end
+            end
         end
     end
 end)
 
--- Lógica ESP Seguro
+-- ==========================================
+-- ESP Y HITBOX (Igual que antes)
+-- ==========================================
 RunService.Heartbeat:Connect(function()
     if not espEnabled then return end
     for _, p in ipairs(Players:GetPlayers()) do
-        -- Solo aplicar ESP a enemigos (si el Team Check está activo)
         if isEnemy(p) and p.Character then
             local head = p.Character:FindFirstChild("Head")
             local hum = p.Character:FindFirstChild("Humanoid")
@@ -286,7 +284,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Lógica Hitbox Visible
 RunService.Heartbeat:Connect(function()
     if not hitboxEnabled then return end
     for _, p in ipairs(Players:GetPlayers()) do
@@ -322,7 +319,6 @@ Players.PlayerRemoving:Connect(function(p)
     if espObjects[p] then espObjects[p]:Destroy() espObjects[p] = nil end
 end)
 
--- Cambio de pestañas
 tabAim.MouseButton1Click:Connect(function()
     tabAim.TextColor3 = Color3.fromRGB(0, 150, 255)
     tabVis.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -337,343 +333,4 @@ tabVis.MouseButton1Click:Connect(function()
     PageVis.Visible = true
 end)
 
-print("GabrielitoXiter - Aimbot y TeamCheck Arreglado.")-- ==========================================
--- GABRIELITOXITER - AIMBOT CORREGIDO
--- ==========================================
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
-for _, gui in pairs(PlayerGui:GetChildren()) do
-    if gui.Name == "GabrielitoXiter" then gui:Destroy() end
-end
-
--- Variables
-local aimbotEnabled, espEnabled, teamCheck = false, false, true
-local hitboxEnabled = false
-local hitboxSize = 6
-local fovRadius = 150
-local targetPart = "Head"
-local hitboxObjects = {}
-local espObjects = {}
-
--- ==========================================
--- FUNCIÓN ANTI-TEAMKILL (MUY ESTRICTA)
--- ==========================================
-local function isEnemy(p)
-    if p == LocalPlayer then return false end
-    if not teamCheck then return true end
-
-    -- 1. Revisión por Team (El sistema normal de Roblox)
-    if LocalPlayer.Team ~= nil and p.Team ~= nil then
-        if LocalPlayer.Team == p.Team then return false end
-    end
-
-    -- 2. Revisión por TeamColor (El color del equipo)
-    if LocalPlayer.TeamColor ~= nil and p.TeamColor ~= nil then
-        if LocalPlayer.TeamColor == p.TeamColor then return false end
-    end
-
-    -- 3. Revisión por Atributo (Muchos juegos usan esto)
-    local myTeamAttr = LocalPlayer:GetAttribute("Team") or LocalPlayer:GetAttribute("team")
-    local pTeamAttr = p:GetAttribute("Team") or p:GetAttribute("team")
-    if myTeamAttr ~= nil and pTeamAttr ~= nil then
-        if myTeamAttr == pTeamAttr then return false end
-    end
-
-    -- 4. Revisión por nombre de equipo (Por si dice "Policia" o "Ladron")
-    if LocalPlayer.Team ~= nil and p.Team ~= nil then
-        local myTeamName = string.lower(LocalPlayer.Team.Name)
-        local pTeamName = string.lower(p.Team.Name)
-        if myTeamName == pTeamName then return false end
-    end
-
-    return true
-end
-
--- ==========================================
--- UI (Igual que antes)
--- ==========================================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GabrielitoXiter"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = PlayerGui
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.fromOffset(700, 400)
-MainFrame.Position = UDim2.new(0.5, -350, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 6)
-
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 35)
-TopBar.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-TopBar.Parent = MainFrame
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 6)
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -10, 1, 0)
-Title.Position = UDim2.new(0, 15, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "GABRIELITOXITER"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TopBar
-
-local LeftPanel = Instance.new("Frame")
-LeftPanel.Size = UDim2.new(0, 150, 1, -35)
-LeftPanel.Position = UDim2.new(0, 0, 0, 36)
-LeftPanel.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-LeftPanel.Parent = MainFrame
-
-local function createTab(text, y)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -20, 0, 30)
-    b.Position = UDim2.fromOffset(10, y)
-    b.BackgroundTransparency = 1
-    b.Text = "   " .. text
-    b.Font = Enum.Font.GothamSemibold
-    b.TextSize = 13
-    b.TextColor3 = Color3.fromRGB(200, 200, 200)
-    b.TextXAlignment = Enum.TextXAlignment.Left
-    b.Parent = LeftPanel
-    return b
-end
-
-local tabAim = createTab("Aimbot", 10)
-local tabVis = createTab("Visuals", 50)
-
-local CenterPanel = Instance.new("Frame")
-CenterPanel.Size = UDim2.new(0, 350, 1, -35)
-CenterPanel.Position = UDim2.new(0, 150, 0, 36)
-CenterPanel.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-CenterPanel.Parent = MainFrame
-
-local PageAim = Instance.new("Frame")
-PageAim.Size = UDim2.new(1, 0, 1, 0)
-PageAim.BackgroundTransparency = 1
-PageAim.Parent = CenterPanel
-
-local PageVis = Instance.new("Frame")
-PageVis.Size = UDim2.new(1, 0, 1, 0)
-PageVis.BackgroundTransparency = 1
-PageVis.Visible = false
-PageVis.Parent = CenterPanel
-
-local function createSwitch(parent, text, y, cb)
-    local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, -20, 0, 30)
-    f.Position = UDim2.fromOffset(10, y)
-    f.BackgroundTransparency = 1
-    f.Parent = parent
-    local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(0.7, 0, 1, 0)
-    l.BackgroundTransparency = 1
-    l.Text = text
-    l.Font = Enum.Font.Gotham
-    l.TextSize = 13
-    l.TextColor3 = Color3.fromRGB(200, 200, 200)
-    l.TextXAlignment = Enum.TextXAlignment.Left
-    l.Parent = f
-    local bg = Instance.new("Frame")
-    bg.Size = UDim2.fromOffset(34, 18)
-    bg.Position = UDim2.new(1, -34, 0.5, -9)
-    bg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    bg.Parent = f
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(1, 0)
-    local dot = Instance.new("Frame")
-    dot.Size = UDim2.fromOffset(14, 14)
-    dot.Position = UDim2.fromOffset(2, 2)
-    dot.BackgroundColor3 = Color3.new(1,1,1)
-    dot.Parent = bg
-    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
-    local on = false
-    bg.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then
-            on = not on
-            bg.BackgroundColor3 = on and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(60, 60, 60)
-            dot.Position = on and UDim2.fromOffset(18, 2) or UDim2.fromOffset(2, 2)
-            cb(on)
-        end
-    end)
-end
-
-createSwitch(PageAim, "Enable Aimbot", 10, function(s) aimbotEnabled = s end)
-createSwitch(PageAim, "Team Check", 50, function(s) teamCheck = s end)
-
-createSwitch(PageVis, "Enable ESP (Safe)", 10, function(s) 
-    espEnabled = s 
-    if not s then
-        for p, obj in pairs(espObjects) do if obj then obj:Destroy() end end
-        espObjects = {}
-    end
-end)
-
-createSwitch(PageVis, "Enable Hitbox", 50, function(s) 
-    hitboxEnabled = s 
-    if not s then
-        for p, box in pairs(hitboxObjects) do if box then box:Destroy() end end
-        hitboxObjects = {}
-    end
-end)
-
--- Slider Hitbox
-local sizeLabel = Instance.new("TextLabel")
-sizeLabel.Size = UDim2.new(1, -20, 0, 20)
-sizeLabel.Position = UDim2.fromOffset(10, 90)
-sizeLabel.BackgroundTransparency = 1
-sizeLabel.Text = "Tamaño: " .. hitboxSize
-sizeLabel.Font = Enum.Font.Gotham
-sizeLabel.TextSize = 12
-sizeLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
-sizeLabel.Parent = PageVis
-
-local btnMinus = Instance.new("TextButton")
-btnMinus.Size = UDim2.fromOffset(30, 20)
-btnMinus.Position = UDim2.fromOffset(10, 115)
-btnMinus.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-btnMinus.Text = "-"
-btnMinus.TextColor3 = Color3.new(1,1,1)
-btnMinus.Parent = PageVis
-
-local btnPlus = Instance.new("TextButton")
-btnPlus.Size = UDim2.fromOffset(30, 20)
-btnPlus.Position = UDim2.fromOffset(50, 115)
-btnPlus.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-btnPlus.Text = "+"
-btnPlus.TextColor3 = Color3.new(1,1,1)
-btnPlus.Parent = PageVis
-
-btnMinus.MouseButton1Click:Connect(function()
-    hitboxSize = math.max(1, hitboxSize - 1)
-    sizeLabel.Text = "Tamaño: " .. hitboxSize
-end)
-
-btnPlus.MouseButton1Click:Connect(function()
-    hitboxSize = math.min(30, hitboxSize + 1)
-    sizeLabel.Text = "Tamaño: " .. hitboxSize
-end)
-
--- ==========================================
--- LÓGICA DEL JUEGO
--- ==========================================
-RunService.RenderStepped:Connect(function()
-    if aimbotEnabled then
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            local closest, dist = nil, math.huge
-            local mouse = UserInputService:GetMouseLocation()
-            for _, p in ipairs(Players:GetPlayers()) do
-                -- AQUI USAMOS LA NUEVA FUNCIÓN isEnemy()
-                if isEnemy(p) and p.Character then
-                    local h = p.Character:FindFirstChild("Humanoid")
-                    local part = p.Character:FindFirstChild(targetPart)
-                    if h and h.Health > 0 and part then
-                        local pos, on = Camera:WorldToViewportPoint(part.Position)
-                        if on then
-                            local d = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
-                            if d < dist and d < fovRadius then
-                                dist = d
-                                closest = part
-                            end
-                        end
-                    end
-                end
-            end
-            if closest then Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, closest.Position) end
-        end
-    end
-end)
-
--- Lógica ESP Seguro
-RunService.Heartbeat:Connect(function()
-    if not espEnabled then return end
-    for _, p in ipairs(Players:GetPlayers()) do
-        -- Solo aplicar ESP a enemigos (si el Team Check está activo)
-        if isEnemy(p) and p.Character then
-            local head = p.Character:FindFirstChild("Head")
-            local hum = p.Character:FindFirstChild("Humanoid")
-            if head and hum and hum.Health > 0 then
-                if not espObjects[p] or not espObjects[p].Parent then
-                    local gui = Instance.new("BillboardGui")
-                    gui.Name = "SafeESP"
-                    gui.Adornee = head
-                    gui.Size = UDim2.new(0, 50, 0, 50)
-                    gui.StudsOffset = Vector3.new(0, 2, 0)
-                    gui.AlwaysOnTop = true
-                    gui.Parent = PlayerGui 
-                    local frame = Instance.new("Frame")
-                    frame.Size = UDim2.new(1, 0, 1, 0)
-                    frame.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-                    frame.BackgroundTransparency = 0.5
-                    frame.BorderSizePixel = 0
-                    frame.Parent = gui
-                    espObjects[p] = gui
-                end
-            end
-        end
-    end
-end)
-
--- Lógica Hitbox Visible
-RunService.Heartbeat:Connect(function()
-    if not hitboxEnabled then return end
-    for _, p in ipairs(Players:GetPlayers()) do
-        if isEnemy(p) and p.Character then
-            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-            local hum = p.Character:FindFirstChild("Humanoid")
-            if hrp and hum and hum.Health > 0 then
-                if not hitboxObjects[p] or not hitboxObjects[p].Parent then
-                    local box = Instance.new("Part")
-                    box.Name = "VisibleHitbox"
-                    box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    box.Transparency = 0.5 
-                    box.Color = Color3.fromRGB(0, 150, 255) 
-                    box.Material = Enum.Material.ForceField 
-                    box.CanCollide = false
-                    box.CanQuery = true
-                    box.Anchored = true 
-                    box.Parent = workspace 
-                    hitboxObjects[p] = box
-                end
-                local box = hitboxObjects[p]
-                if box and box.Parent then
-                    box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    box.CFrame = hrp.CFrame 
-                end
-            end
-        end
-    end
-end)
-
-Players.PlayerRemoving:Connect(function(p)
-    if hitboxObjects[p] then hitboxObjects[p]:Destroy() hitboxObjects[p] = nil end
-    if espObjects[p] then espObjects[p]:Destroy() espObjects[p] = nil end
-end)
-
--- Cambio de pestañas
-tabAim.MouseButton1Click:Connect(function()
-    tabAim.TextColor3 = Color3.fromRGB(0, 150, 255)
-    tabVis.TextColor3 = Color3.fromRGB(200, 200, 200)
-    PageAim.Visible = true
-    PageVis.Visible = false
-end)
-
-tabVis.MouseButton1Click:Connect(function()
-    tabAim.TextColor3 = Color3.fromRGB(200, 200, 200)
-    tabVis.TextColor3 = Color3.fromRGB(0, 150, 255)
-    PageAim.Visible = false
-    PageVis.Visible = true
-end)
-
-print("GabrielitoXiter - Aimbot y TeamCheck Arreglado.")
+print("GabrielitoXiter - Aimbot Sincronizado.")
