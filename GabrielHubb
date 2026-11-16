@@ -1,5 +1,5 @@
 -- ==========================================
--- GABRIEL XITER - WINDUI EDITION
+-- GABRIEL XITER - WINDUI PRO (DUELOS)
 -- ==========================================
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
@@ -13,17 +13,18 @@ end
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
--- Variables de estado
+-- Variables
 local espEnabled = false
 local espObjects = {}
 local hitboxEnabled = false
+local hitboxInvisible = false
 local hitboxSize = 5
-local hitboxTransparency = 0.5
 local hitboxData = {}
 
--- Crear Ventana
+-- Crear la ventana principal
 local Window = WindUI:CreateWindow({
     Title = "Gabriel Xiter",
     Icon = "swords",
@@ -33,8 +34,14 @@ local Window = WindUI:CreateWindow({
     Theme = "Dark",
     Transparent = true,
     ThemeSettings = {
-        Accent = Color3.fromRGB(255, 80, 150), -- Tu color rosa
+        Accent = Color3.fromRGB(255, 80, 150), -- Tu color rosa característico
         Background = Color3.fromRGB(22, 22, 22)
+    },
+    OpenButton = {
+        Title = "Gabriel Xiter",
+        Icon = "swords",
+        Enabled = true,
+        Draggable = true,
     }
 })
 
@@ -62,17 +69,17 @@ VisualTab:Toggle({
 RunService.RenderStepped:Connect(function()
     if not espEnabled then return end
     
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            if not espObjects[player] then
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if not espObjects[p] then
                 local highlight = Instance.new("Highlight")
-                highlight.Adornee = player.Character
+                highlight.Adornee = p.Character
                 highlight.FillColor = Color3.fromRGB(255, 80, 150)
                 highlight.OutlineColor = Color3.fromRGB(255, 80, 150)
                 highlight.FillTransparency = 0.5
                 highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlight.Parent = game:GetService("CoreGui")
-                espObjects[player] = highlight
+                highlight.Parent = CoreGui
+                espObjects[p] = highlight
             end
         end
     end
@@ -85,7 +92,7 @@ local HitboxTab = Window:Tab({ Title = "Hitbox", Icon = "crosshair" })
 
 HitboxTab:Toggle({
     Title = "Activar Hitbox",
-    Desc = "Crea un cuadro invisible para facilitar los tiros.",
+    Desc = "Crea un cuadro para facilitar los tiros.",
     Default = false,
     Callback = function(state)
         hitboxEnabled = state
@@ -95,6 +102,15 @@ HitboxTab:Toggle({
             end
             hitboxData = {}
         end
+    end
+})
+
+HitboxTab:Toggle({
+    Title = "Hitbox Invisible",
+    Desc = "Hace que el hitbox no se vea.",
+    Default = false,
+    Callback = function(state)
+        hitboxInvisible = state
     end
 })
 
@@ -108,31 +124,21 @@ HitboxTab:Slider({
     end
 })
 
-HitboxTab:Slider({
-    Title = "Transparencia",
-    Desc = "0 es sólido, 1 es invisible.",
-    Step = 0.1,
-    Value = { Min = 0, Max = 1, Default = 0.5 },
-    Callback = function(value)
-        hitboxTransparency = value
-    end
-})
-
 -- Lógica de la Hitbox
 RunService.Heartbeat:Connect(function()
     if not hitboxEnabled then return end
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-            local humanoid = player.Character:FindFirstChild("Humanoid")
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+            local humanoid = p.Character:FindFirstChild("Humanoid")
             
             if hrp and humanoid and humanoid.Health > 0 then
-                if not hitboxData[player] then
+                if not hitboxData[p] then
                     local box = Instance.new("Part")
                     box.Name = "GabrielHitbox"
                     box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    box.Transparency = hitboxTransparency
+                    box.Transparency = hitboxInvisible and 1 or 0.5
                     box.Color = Color3.fromRGB(255, 80, 150)
                     box.Material = Enum.Material.Neon
                     box.CanCollide = false
@@ -141,13 +147,13 @@ RunService.Heartbeat:Connect(function()
                     box.Anchored = true 
                     box.Parent = workspace
                     
-                    hitboxData[player] = {Box = box}
+                    hitboxData[p] = {Box = box}
                 end
                 
-                local data = hitboxData[player]
+                local data = hitboxData[p]
                 if data and data.Box and data.Box.Parent then
                     data.Box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    data.Box.Transparency = hitboxTransparency
+                    data.Box.Transparency = hitboxInvisible and 1 or 0.5
                     data.Box.CFrame = hrp.CFrame 
                 end
             end
@@ -170,7 +176,6 @@ SettingsTab:Button({
     end
 })
 
--- Mensaje de carga
 WindUI:Notify({
     Title = "Gabriel Xiter",
     Content = "Script cargado correctamente.",
