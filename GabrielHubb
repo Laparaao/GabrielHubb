@@ -1,21 +1,23 @@
 -- ==========================================
--- GABRIELITOXIT - OPTIMIZADO PARA SOLARA
+-- GABRIELITOXIT - SB DESARROLLO BYPASS
 -- ==========================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- SOLARA FIX: Forzar CoreGui directamente para que los clics funcionen
-local CoreGui = game:GetService("CoreGui")
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GabrielitoXit_Solara"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 999999 -- Capa superior
-ScreenGui.Parent = CoreGui
+-- 1. PONER LA UI EN PLAYER GUI (Oculta del anti-cheat)
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SettingsGui" -- Nombre falso para que parezca del juego
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 999999
+ScreenGui.Parent = PlayerGui
+
+-- 2. VARIABLES
 local Theme = {
     Background = Color3.fromRGB(25, 25, 25),
     Panel = Color3.fromRGB(40, 40, 40),
@@ -31,9 +33,7 @@ local hitboxTransparency = 0
 local espObjects = {}
 local originalSizes = {}
 
--- ==========================================
--- INTERFAZ
--- ==========================================
+-- 3. INTERFAZ
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 350, 0, 300)
 MainFrame.Position = UDim2.new(0.5, -175, 0.5, -150)
@@ -52,13 +52,14 @@ TopBar.Parent = MainFrame
 local TitleText = Instance.new("TextLabel")
 TitleText.Size = UDim2.new(1, -90, 1, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "  GabrielitoXit [Solara]"
+TitleText.Text = "  GabrielitoXit [SB]"
 TitleText.TextColor3 = Theme.TextColor
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextSize = 13
 TitleText.Parent = TopBar
 
+-- BOTONES DE VENTANA (CON DETECCIÓN DE CLIC POR POSICIÓN)
 local function createTopButton(text, posX, color)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 30, 1, 0)
@@ -82,6 +83,7 @@ ContentFrame.Position = UDim2.new(0, 0, 0, 30)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
+-- Pestañas
 local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(1, 0, 0, 30)
 TabBar.BackgroundColor3 = Theme.Panel
@@ -123,27 +125,47 @@ ESPTab.Visible = false
 ESPTab.CanvasSize = UDim2.new(0, 0, 0, 400)
 ESPTab.Parent = ContentFrame
 
-HitboxBtn.MouseButton1Click:Connect(function()
+-- ==========================================
+-- DETECCIÓN DE CLICS POR POSICIÓN (ANTI-CHEAT BYPASS)
+-- ==========================================
+local function safeClick(btn, callback)
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            local mousePos = UserInputService:GetMouseLocation()
+            local pos = btn.AbsolutePosition
+            local size = btn.AbsoluteSize
+            
+            if mousePos.X >= pos.X and mousePos.X <= pos.X + size.X and
+               mousePos.Y >= pos.Y and mousePos.Y <= pos.Y + size.Y then
+                callback()
+            end
+        end
+    end)
+end
+
+-- Aplicar detección segura a los botones
+safeClick(HitboxBtn, function()
     HitboxTab.Visible = true; ESPTab.Visible = false
     HitboxBtn.TextColor3 = Theme.Green; ESPBtn.TextColor3 = Theme.TextColor
 end)
 
-ESPBtn.MouseButton1Click:Connect(function()
+safeClick(ESPBtn, function()
     HitboxTab.Visible = false; ESPTab.Visible = true
     HitboxBtn.TextColor3 = Theme.TextColor; ESPBtn.TextColor3 = Theme.Green
 end)
 
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-MinBtn.MouseButton1Click:Connect(function() 
+safeClick(CloseBtn, function() ScreenGui:Destroy() end)
+safeClick(MinBtn, function() 
     ContentFrame.Visible = not ContentFrame.Visible
     MainFrame.Size = ContentFrame.Visible and UDim2.new(0, 350, 0, 300) or UDim2.new(0, 350, 0, 30)
 end)
-MaxBtn.MouseButton1Click:Connect(function() 
+safeClick(MaxBtn, function() 
     MainFrame.Size = MainFrame.Size.Y.Scale == 0 and UDim2.new(0, 500, 0, 400) or UDim2.new(0, 350, 0, 300)
 end)
 
 -- ==========================================
--- FUNCIONES DE CREACIÓN (SOLARA FIX)
+-- FUNCIONES DE CREACIÓN
 -- ==========================================
 local function createLabel(parent, text, size, pos, color)
     local lbl = Instance.new("TextLabel")
@@ -162,13 +184,7 @@ local function createButton(parent, text, size, pos, callback)
     btn.Text = text; btn.BorderSizePixel = 0; btn.Parent = parent
     btn.AutoButtonColor = true
     
-    -- SOLARA FIX: Usar InputBegan que es más confiable en Solara que MouseButton1Click
-    btn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            task.spawn(callback)
-        end
-    end)
-    
+    safeClick(btn, callback) -- Usar la detección segura
     return btn
 end
 
@@ -200,7 +216,7 @@ local function createToggle(parent, title, yPos)
 end
 
 -- ==========================================
--- CONTENIDO HITBOX
+-- CONTENIDO
 -- ==========================================
 createLabel(HitboxTab, "Hitbox Settings", UDim2.new(0, 200, 0, 35), UDim2.new(0, 10, 0, 10), Theme.Green)
 createToggle(HitboxTab, "Hitbox", 50) 
@@ -229,9 +245,6 @@ createButton(HitboxTab, "+", UDim2.new(0, 35, 0, 30), UDim2.new(0, 205, 0, 145),
     transLabel.Text = "Transparency: " .. hitboxTransparency .. "%"
 end)
 
--- ==========================================
--- CONTENIDO ESP
--- ==========================================
 createLabel(ESPTab, "ESP Settings", UDim2.new(0, 200, 0, 35), UDim2.new(0, 10, 0, 10), Theme.Green)
 createToggle(ESPTab, "ESP Frame", 50)
 createToggle(ESPTab, "ESP Name", 95)
@@ -259,10 +272,10 @@ colorBtn.BackgroundColor3 = espColor
 colorBtn.TextColor3 = Theme.Background
 
 -- ==========================================
--- LÓGICA DEL HITBOX
+-- HITBOX LOOP
 -- ==========================================
 task.spawn(function()
-    while task.wait(0.1) do -- En Solara, wait más alto evita lag
+    while task.wait(0.1) do
         if Toggles["Hitbox"] then
             for _, player in pairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character then
@@ -290,7 +303,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- LÓGICA DEL ESP
+-- ESP LOOP
 -- ==========================================
 task.spawn(function()
     while task.wait(0.1) do
@@ -320,7 +333,7 @@ task.spawn(function()
                     highlight.FillTransparency = 1 
                     highlight.OutlineTransparency = 0
                     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                    highlight.Parent = ScreenGui
+                    highlight.Parent = PlayerGui -- Oculto en PlayerGui
                     espObjects[player].Highlight = highlight
 
                     local billboard = Instance.new("BillboardGui")
@@ -328,7 +341,7 @@ task.spawn(function()
                     billboard.Size = UDim2.new(0, 200, 0, 50)
                     billboard.StudsOffset = Vector3.new(0, 2.5, 0)
                     billboard.AlwaysOnTop = true
-                    billboard.Parent = ScreenGui
+                    billboard.Parent = PlayerGui -- Oculto en PlayerGui
                     
                     local nameLabel = Instance.new("TextLabel")
                     nameLabel.Size = UDim2.new(1, 0, 1, 0)
