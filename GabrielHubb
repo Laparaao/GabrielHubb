@@ -1,5 +1,5 @@
 -- ==========================================
--- GABRIELITOXITER - ANTI-PING HITBOX
+-- GABRIELITOXITER - HITBOX VISIBLE (SEGURO)
 -- ==========================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,19 +8,24 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+-- Limpiar
 for _, gui in pairs(PlayerGui:GetChildren()) do
     if gui.Name == "GabrielitoXiter" then gui:Destroy() end
 end
 
 -- Variables
-local aimbotEnabled, espEnabled, teamCheck = false, false, false
-local hitboxEnabled, hitboxVisible = false, true
+local aimbotEnabled = false
+local espEnabled = false
+local teamCheck = false
+local hitboxEnabled = false
 local hitboxSize = 6
 local fovRadius = 150
 local targetPart = "Head"
 local hitboxObjects = {}
 
--- UI
+-- ==========================================
+-- CREACIÓN DE LA UI
+-- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GabrielitoXiter"
 ScreenGui.ResetOnSpawn = false
@@ -46,7 +51,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -10, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "GABRIELITOXITER [ANTI-PING]"
+Title.Text = "GABRIELITOXITER"
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -93,6 +98,7 @@ PageVis.BackgroundTransparency = 1
 PageVis.Visible = false
 PageVis.Parent = CenterPanel
 
+-- Switch
 local function createSwitch(parent, text, y, cb)
     local f = Instance.new("Frame")
     f.Size = UDim2.new(1, -20, 0, 30)
@@ -135,23 +141,53 @@ local function createSwitch(parent, text, y, cb)
     end)
 end
 
+-- Controles
 createSwitch(PageAim, "Enable Aimbot", 10, function(s) aimbotEnabled = s end)
 createSwitch(PageAim, "Team Check", 50, function(s) teamCheck = s end)
 
 createSwitch(PageVis, "Enable ESP", 10, function(s) espEnabled = s end)
-createSwitch(PageVis, "Enable Hitbox", 50, function(s) 
-    hitboxEnabled = s 
-    if not s then
-        for p, data in pairs(hitboxObjects) do
-            if data.Box then data.Box:Destroy() end
-            if data.Weld then data.Weld:Destroy() end
-        end
-        hitboxObjects = {}
-    end
-end)
-createSwitch(PageVis, "Hitbox Invisible", 90, function(s) hitboxVisible = not s end)
+createSwitch(PageVis, "Enable Hitbox (Visible)", 50, function(s) hitboxEnabled = s end)
 
--- Lógica
+local sizeLabel = Instance.new("TextLabel")
+sizeLabel.Size = UDim2.new(1, -20, 0, 20)
+sizeLabel.Position = UDim2.fromOffset(10, 90)
+sizeLabel.BackgroundTransparency = 1
+sizeLabel.Text = "Tamaño: " .. hitboxSize
+sizeLabel.Font = Enum.Font.Gotham
+sizeLabel.TextSize = 12
+sizeLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
+sizeLabel.Parent = PageVis
+
+local btnMinus = Instance.new("TextButton")
+btnMinus.Size = UDim2.fromOffset(30, 20)
+btnMinus.Position = UDim2.fromOffset(10, 115)
+btnMinus.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+btnMinus.Text = "-"
+btnMinus.TextColor3 = Color3.new(1,1,1)
+btnMinus.Parent = PageVis
+
+local btnPlus = Instance.new("TextButton")
+btnPlus.Size = UDim2.fromOffset(30, 20)
+btnPlus.Position = UDim2.fromOffset(50, 115)
+btnPlus.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+btnPlus.Text = "+"
+btnPlus.TextColor3 = Color3.new(1,1,1)
+btnPlus.Parent = PageVis
+
+btnMinus.MouseButton1Click:Connect(function()
+    hitboxSize = math.max(1, hitboxSize - 1)
+    sizeLabel.Text = "Tamaño: " .. hitboxSize
+end)
+
+btnPlus.MouseButton1Click:Connect(function()
+    hitboxSize = math.min(30, hitboxSize + 1)
+    sizeLabel.Text = "Tamaño: " .. hitboxSize
+end)
+
+-- ==========================================
+-- LÓGICA DEL JUEGO (AIMBOT Y ESP)
+-- ==========================================
 RunService.RenderStepped:Connect(function()
     if aimbotEnabled then
         local char = LocalPlayer.Character
@@ -192,48 +228,54 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- LÓGICA DE HITBOX ANTI-PING (WELD Y PREDICCIÓN)
+-- ==========================================
+-- HITBOX VISIBLE (SIN ANTI-CHEAT KICK)
+-- ==========================================
 RunService.Heartbeat:Connect(function()
     if not hitboxEnabled then return end
+
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
             local hrp = p.Character:FindFirstChild("HumanoidRootPart")
             local hum = p.Character:FindFirstChild("Humanoid")
-            
+
             if hrp and hum and hum.Health > 0 then
-                if not hitboxObjects[p] or not hitboxObjects[p].Box.Parent then
+                -- Si no existe la caja para este enemigo, la creamos
+                if not hitboxObjects[p] or not hitboxObjects[p].Parent then
                     local box = Instance.new("Part")
-                    box.Name = "PingHitbox"
+                    box.Name = "VisibleHitbox"
                     box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    box.Transparency = hitboxVisible and 0.5 or 1
-                    box.Color = Color3.fromRGB(0, 150, 255)
-                    box.Material = Enum.Material.Neon
+                    
+                    -- AQUÍ HACEMOS QUE SE VEA:
+                    box.Transparency = 0.5 -- 0 es sólido, 1 es invisible. 0.5 es semitransparente.
+                    box.Color = Color3.fromRGB(0, 150, 255) -- Color azul
+                    box.Material = Enum.Material.ForceField -- Material brillante (estilo holograma)
+                    
                     box.CanCollide = false
                     box.CanQuery = true
-                    box.Anchored = false -- Importante para el Weld
-                    box.Massless = true
-                    box.Parent = workspace
+                    box.Anchored = true -- Anclada para que no afecte la física
+                    box.Parent = workspace -- En el mundo, no en el personaje
                     
-                    -- Soldamos la caja al enemigo
-                    local weld = Instance.new("WeldConstraint")
-                    weld.Part0 = hrp
-                    weld.Part1 = box
-                    weld.Parent = box
-                    
-                    hitboxObjects[p] = {Box = box, Weld = weld}
+                    hitboxObjects[p] = box
                 end
-                
-                local box = hitboxObjects[p].Box
-                if box then
-                    -- Aplicamos un pequeño "lag compensation" (predictivo)
-                    local velocity = hrp.AssemblyLinearVelocity
+
+                -- Actualizamos la caja
+                local box = hitboxObjects[p]
+                if box and box.Parent then
                     box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    box.Transparency = hitboxVisible and 0.5 or 1
-                    -- Movemos la caja un 20% hacia donde va el enemigo (compensa el ping)
-                    box.CFrame = hrp.CFrame + (velocity * 0.05) 
+                    -- Movemos la caja a la posición del enemigo
+                    box.CFrame = hrp.CFrame 
                 end
             end
         end
+    end
+end)
+
+-- Limpieza cuando se apaga o se sale
+Players.PlayerRemoving:Connect(function(p)
+    if hitboxObjects[p] then
+        hitboxObjects[p]:Destroy()
+        hitboxObjects[p] = nil
     end
 end)
 
@@ -252,4 +294,4 @@ tabVis.MouseButton1Click:Connect(function()
     PageVis.Visible = true
 end)
 
-print("Hitbox Anti-Ping Cargada.")
+print("GabrielitoXiter - Hitbox Visible Cargada.")
