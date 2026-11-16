@@ -1,8 +1,9 @@
 -- ==========================================
--- GABRIEL XITER (NEXUS UI) - FUNCIONAL
+-- GABRIEL XITER (NEXUS UI) - CLICK BYPASS
 -- ==========================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -19,12 +20,14 @@ local Colors = {
     Text = Color3.fromRGB(220, 220, 220),
     TextDim = Color3.fromRGB(120, 120, 120),
     Accent = Color3.fromRGB(255, 80, 150),
+    Green = Color3.fromRGB(0, 255, 110)
 }
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GabrielXiter"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 99999 -- Asegurar que esté arriba
 ScreenGui.Parent = PlayerGui
 
 local MainFrame = Instance.new("Frame")
@@ -40,9 +43,39 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 8)
 UICorner.Parent = MainFrame
 
-local Stroke = Instance.new("UIStroke")
-Stroke.Color = Color3.fromRGB(50, 50, 50)
-Stroke.Parent = MainFrame
+-- ==========================================
+-- SISTEMA DE CLIC POR POSICIÓN (BYPASS)
+-- ==========================================
+local buttons = {}
+
+local function registerButton(btn, callback)
+    table.insert(buttons, {btn = btn, callback = callback})
+end
+
+-- Escuchar clics globales
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    -- En algunos juegos, gameProcessed es true incluso en la UI, así que lo ignoramos
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        local mousePos = UserInputService:GetMouseLocation()
+        
+        for _, data in ipairs(buttons) do
+            local btn = data.btn
+            -- Verificar que el botón y su padre sean visibles
+            if btn and btn.Parent and btn.Parent.Parent and btn.Visible and btn.Parent.Visible then
+                local pos = btn.AbsolutePosition
+                local size = btn.AbsoluteSize
+                
+                -- Comprobar si el clic está dentro del botón
+                if mousePos.X >= pos.X and mousePos.X <= pos.X + size.X and
+                   mousePos.Y >= pos.Y and mousePos.Y <= pos.Y + size.Y then
+                    
+                    task.spawn(data.callback)
+                    break
+                end
+            end
+        end
+    end
+end)
 
 -- Barra Superior
 local TopBar = Instance.new("Frame")
@@ -50,12 +83,6 @@ TopBar.Size = UDim2.new(1, 0, 0, 35)
 TopBar.BackgroundColor3 = Colors.Background
 TopBar.BackgroundTransparency = 0.5
 TopBar.Parent = MainFrame
-
-local TopBarLine = Instance.new("Frame")
-TopBarLine.Size = UDim2.new(1, 0, 0, 1)
-TopBarLine.Position = UDim2.new(0, 0, 1, 0)
-TopBarLine.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-TopBarLine.Parent = TopBar
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 200, 1, 0)
@@ -77,6 +104,7 @@ CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 14
 CloseBtn.TextColor3 = Colors.Text
 CloseBtn.Parent = TopBar
+registerButton(CloseBtn, function() ScreenGui:Destroy() end)
 
 -- Barra Lateral
 local Sidebar = Instance.new("Frame")
@@ -84,9 +112,7 @@ Sidebar.Size = UDim2.new(0, 180, 1, -35)
 Sidebar.Position = UDim2.new(0, 0, 0, 35)
 Sidebar.BackgroundColor3 = Colors.Sidebar
 Sidebar.Parent = MainFrame
-local SidebarCorner = Instance.new("UICorner")
-SidebarCorner.CornerRadius = UDim.new(0, 8)
-SidebarCorner.Parent = Sidebar
+local SidebarCorner = Instance.new("UICorner") SidebarCorner.CornerRadius = UDim.new(0, 8) SidebarCorner.Parent = Sidebar
 
 local TabContainer = Instance.new("Frame")
 TabContainer.Size = UDim2.new(1, -10, 1, -10)
@@ -119,9 +145,7 @@ local function createTab(text, yPos)
     btn.TextColor3 = Colors.Text
     btn.TextXAlignment = Enum.TextXAlignment.Left
     btn.Parent = TabContainer
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
+    local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, 6) corner.Parent = btn
     return btn
 end
 
@@ -135,20 +159,14 @@ local tabPlayers = createTab("Players", 170)
 local tabMisc = createTab("Misc", 205)
 local tabWorld = createTab("World", 240)
 
--- ==========================================
--- PANELES (Páginas)
--- ==========================================
+-- PANELES
 local CenterPanel = Instance.new("Frame")
 CenterPanel.Size = UDim2.new(0, 350, 1, -45)
 CenterPanel.Position = UDim2.new(0, 190, 0, 40)
 CenterPanel.BackgroundColor3 = Colors.Panel
-CenterPanel.BorderSizePixel = 0
 CenterPanel.Parent = MainFrame
-local CenterCorner = Instance.new("UICorner")
-CenterCorner.CornerRadius = UDim.new(0, 8)
-CenterCorner.Parent = CenterPanel
+local CenterCorner = Instance.new("UICorner") CenterCorner.CornerRadius = UDim.new(0, 8) CenterCorner.Parent = CenterPanel
 
--- Función para crear páginas
 local function createPage(name)
     local page = Instance.new("Frame")
     page.Name = name
@@ -161,29 +179,18 @@ end
 
 local pageConfig = createPage("ConfigPage")
 local pagePlayers = createPage("PlayersPage")
-local pageMisc = createPage("MiscPage")
 
--- Lógica de cambio de pestañas
 local function switchPage(pageToShow)
     for _, child in pairs(CenterPanel:GetChildren()) do
-        if child:IsA("Frame") then
-            child.Visible = false
-        end
+        if child:IsA("Frame") then child.Visible = false end
     end
     pageToShow.Visible = true
 end
 
-tabPlayers.MouseButton1Click:Connect(function()
-    switchPage(pagePlayers)
-end)
+registerButton(tabPlayers, function() switchPage(pagePlayers) end)
+-- (Puedes agregar más registerButton para las otras pestañas)
 
-tabMisc.MouseButton1Click:Connect(function()
-    switchPage(pageMisc)
-end)
-
--- ==========================================
 -- PÁGINA: PLAYERS (HITBOX)
--- ==========================================
 local TitlePlayers = Instance.new("TextLabel")
 TitlePlayers.Size = UDim2.new(1, -20, 0, 30)
 TitlePlayers.Position = UDim2.fromOffset(10, 10)
@@ -195,7 +202,6 @@ TitlePlayers.TextColor3 = Colors.TextDim
 TitlePlayers.TextXAlignment = Enum.TextXAlignment.Left
 TitlePlayers.Parent = pagePlayers
 
--- Variables Hitbox
 local hitboxEnabled = false
 local hitboxInvisible = false
 local hitboxSize = 1.5
@@ -211,12 +217,10 @@ local function createToggle(parent, text, yPos, callback)
     btn.TextSize = 12
     btn.TextColor3 = Colors.Text
     btn.Parent = parent
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 4)
-    corner.Parent = btn
+    local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, 4) corner.Parent = btn
     
     local isOn = false
-    btn.MouseButton1Click:Connect(function()
+    registerButton(btn, function()
         isOn = not isOn
         btn.Text = text .. "  •  " .. (isOn and "ON" or "OFF")
         btn.TextColor3 = isOn and Colors.Green or Colors.Text
@@ -224,13 +228,8 @@ local function createToggle(parent, text, yPos, callback)
     end)
 end
 
-createToggle(pagePlayers, "Hitbox Torso", 40, function(state)
-    hitboxEnabled = state
-end)
-
-createToggle(pagePlayers, "Hitbox Invisible", 80, function(state)
-    hitboxInvisible = state
-end)
+createToggle(pagePlayers, "Hitbox Torso", 40, function(state) hitboxEnabled = state end)
+createToggle(pagePlayers, "Hitbox Invisible", 80, function(state) hitboxInvisible = state end)
 
 local sizeLabel = Instance.new("TextLabel")
 sizeLabel.Size = UDim2.new(1, -20, 0, 20)
@@ -248,34 +247,28 @@ btnSizeMinus.Size = UDim2.fromOffset(50, 25)
 btnSizeMinus.Position = UDim2.fromOffset(10, 145)
 btnSizeMinus.BackgroundColor3 = Colors.Input
 btnSizeMinus.Text = "-"
-btnSizeMinus.Font = Enum.Font.GothamBold
 btnSizeMinus.TextColor3 = Colors.Text
 btnSizeMinus.Parent = pagePlayers
 local c1 = Instance.new("UICorner") c1.CornerRadius = UDim.new(0, 4) c1.Parent = btnSizeMinus
+registerButton(btnSizeMinus, function()
+    hitboxSize = math.max(1, hitboxSize - 0.1)
+    sizeLabel.Text = "Hitbox Size: " .. string.format("%.1f", hitboxSize)
+end)
 
 local btnSizePlus = Instance.new("TextButton")
 btnSizePlus.Size = UDim2.fromOffset(50, 25)
 btnSizePlus.Position = UDim2.fromOffset(70, 145)
 btnSizePlus.BackgroundColor3 = Colors.Input
 btnSizePlus.Text = "+"
-btnSizePlus.Font = Enum.Font.GothamBold
 btnSizePlus.TextColor3 = Colors.Text
 btnSizePlus.Parent = pagePlayers
 local c2 = Instance.new("UICorner") c2.CornerRadius = UDim.new(0, 4) c2.Parent = btnSizePlus
-
-btnSizeMinus.MouseButton1Click:Connect(function()
-    hitboxSize = math.max(1, hitboxSize - 0.1)
-    sizeLabel.Text = "Hitbox Size: " .. string.format("%.1f", hitboxSize)
-end)
-
-btnSizePlus.MouseButton1Click:Connect(function()
+registerButton(btnSizePlus, function()
     hitboxSize = math.min(10, hitboxSize + 0.1)
     sizeLabel.Text = "Hitbox Size: " .. string.format("%.1f", hitboxSize)
 end)
 
--- ==========================================
--- LÓGICA DEL HITBOX (SIN CONGELAR)
--- ==========================================
+-- LÓGICA DEL HITBOX
 RunService.Heartbeat:Connect(function()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
@@ -289,7 +282,6 @@ RunService.Heartbeat:Connect(function()
                     end
                     
                     local origSize = hitboxData[player].OriginalSize
-                    -- Fórmula para no congelar
                     torso.Size = Vector3.new(origSize.X * hitboxSize, origSize.Y * (1 + (hitboxSize - 1) * 0.2), origSize.Z * hitboxSize)
                     torso.Transparency = hitboxInvisible and 1 or 0
                 else
@@ -304,14 +296,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Panel Derecho (Igual que antes)
-local RightPanel = Instance.new("Frame")
-RightPanel.Size = UDim2.new(0, 190, 1, -45)
-RightPanel.Position = UDim2.new(0, 550, 0, 40)
-RightPanel.BackgroundColor3 = Colors.Panel
-RightPanel.Parent = MainFrame
-local RightCorner = Instance.new("UICorner") RightCorner.CornerRadius = UDim.new(0, 8) RightCorner.Parent = RightPanel
-
 -- Botón para volver a Config
 local BackToConfigBtn = Instance.new("TextButton")
 BackToConfigBtn.Size = UDim2.new(1, -20, 0, 30)
@@ -321,16 +305,8 @@ BackToConfigBtn.Text = "Back to Configs"
 BackToConfigBtn.Font = Enum.Font.GothamBold
 BackToConfigBtn.TextSize = 12
 BackToConfigBtn.TextColor3 = Colors.Text
-BackToConfigBtn.Parent = RightPanel
+BackToConfigBtn.Parent = MainFrame -- Lo puse en MainFrame temporalmente para que se vea
 local BackCorner = Instance.new("UICorner") BackCorner.CornerRadius = UDim.new(0, 4) BackCorner.Parent = BackToConfigBtn
+registerButton(BackToConfigBtn, function() switchPage(pageConfig) end)
 
-BackToConfigBtn.MouseButton1Click:Connect(function()
-    switchPage(pageConfig)
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
-
--- Iniciar en Config por defecto
 switchPage(pageConfig)
