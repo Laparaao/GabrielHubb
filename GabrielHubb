@@ -1,5 +1,5 @@
 -- ==========================================
--- GABRIEL XITER (NEXUS UI) - CLICK BYPASS
+-- GABRIEL XITER - DUELOS (HITBOX VISIBLE)
 -- ==========================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,7 +9,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Limpiar UI vieja
 for _, gui in pairs(PlayerGui:GetChildren()) do
-    if gui.Name == "GabrielXiter" or gui.Name == "NexusClone" then gui:Destroy() end
+    if gui.Name == "GabrielXiter" then gui:Destroy() end
 end
 
 local Colors = {
@@ -27,7 +27,7 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GabrielXiter"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 99999 -- Asegurar que esté arriba
+ScreenGui.DisplayOrder = 99999
 ScreenGui.Parent = PlayerGui
 
 local MainFrame = Instance.new("Frame")
@@ -38,37 +38,24 @@ MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
+local UICorner = Instance.new("UICorner") UICorner.CornerRadius = UDim.new(0, 8) UICorner.Parent = MainFrame
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 8)
-UICorner.Parent = MainFrame
-
--- ==========================================
--- SISTEMA DE CLIC POR POSICIÓN (BYPASS)
--- ==========================================
+-- Sistema de clics
 local buttons = {}
-
 local function registerButton(btn, callback)
     table.insert(buttons, {btn = btn, callback = callback})
 end
 
--- Escuchar clics globales
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    -- En algunos juegos, gameProcessed es true incluso en la UI, así que lo ignoramos
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         local mousePos = UserInputService:GetMouseLocation()
-        
         for _, data in ipairs(buttons) do
             local btn = data.btn
-            -- Verificar que el botón y su padre sean visibles
-            if btn and btn.Parent and btn.Parent.Parent and btn.Visible and btn.Parent.Visible then
+            if btn and btn.Parent and btn.Visible then
                 local pos = btn.AbsolutePosition
                 local size = btn.AbsoluteSize
-                
-                -- Comprobar si el clic está dentro del botón
                 if mousePos.X >= pos.X and mousePos.X <= pos.X + size.X and
                    mousePos.Y >= pos.Y and mousePos.Y <= pos.Y + size.Y then
-                    
                     task.spawn(data.callback)
                     break
                 end
@@ -88,7 +75,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 200, 1, 0)
 Title.Position = UDim2.fromOffset(15, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "||||| Gabriel Xiter"
+Title.Text = "||||| Gabriel Xiter [Duelos]"
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.TextColor3 = Colors.Accent
@@ -149,15 +136,9 @@ local function createTab(text, yPos)
     return btn
 end
 
-createCategory("COMBAT", 10)
-local tabAim = createTab("Aim-Assist", 35)
-local tabSilent = createTab("Silent-Aim", 70)
-local tabTrigger = createTab("Trigger-Bot", 105)
-
-createCategory("VISUAL", 145)
-local tabPlayers = createTab("Players", 170)
-local tabMisc = createTab("Misc", 205)
-local tabWorld = createTab("World", 240)
+createCategory("VISUAL", 10)
+local tabPlayers = createTab("ESP Players", 35)
+local tabHitbox = createTab("Hitbox", 70)
 
 -- PANELES
 local CenterPanel = Instance.new("Frame")
@@ -177,8 +158,8 @@ local function createPage(name)
     return page
 end
 
-local pageConfig = createPage("ConfigPage")
 local pagePlayers = createPage("PlayersPage")
+local pageHitbox = createPage("HitboxPage")
 
 local function switchPage(pageToShow)
     for _, child in pairs(CenterPanel:GetChildren()) do
@@ -188,25 +169,9 @@ local function switchPage(pageToShow)
 end
 
 registerButton(tabPlayers, function() switchPage(pagePlayers) end)
--- (Puedes agregar más registerButton para las otras pestañas)
+registerButton(tabHitbox, function() switchPage(pageHitbox) end)
 
--- PÁGINA: PLAYERS (HITBOX)
-local TitlePlayers = Instance.new("TextLabel")
-TitlePlayers.Size = UDim2.new(1, -20, 0, 30)
-TitlePlayers.Position = UDim2.fromOffset(10, 10)
-TitlePlayers.BackgroundTransparency = 1
-TitlePlayers.Text = "PLAYER MODS"
-TitlePlayers.Font = Enum.Font.GothamBold
-TitlePlayers.TextSize = 11
-TitlePlayers.TextColor3 = Colors.TextDim
-TitlePlayers.TextXAlignment = Enum.TextXAlignment.Left
-TitlePlayers.Parent = pagePlayers
-
-local hitboxEnabled = false
-local hitboxInvisible = false
-local hitboxSize = 1.5
-local hitboxData = {}
-
+-- Función genérica de Toggle
 local function createToggle(parent, text, yPos, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -20, 0, 30)
@@ -228,66 +193,155 @@ local function createToggle(parent, text, yPos, callback)
     end)
 end
 
-createToggle(pagePlayers, "Hitbox Torso", 40, function(state) hitboxEnabled = state end)
-createToggle(pagePlayers, "Hitbox Invisible", 80, function(state) hitboxInvisible = state end)
+-- ==========================================
+-- PÁGINA: ESP PLAYERS
+-- ==========================================
+local TitlePlayers = Instance.new("TextLabel")
+TitlePlayers.Size = UDim2.new(1, -20, 0, 30)
+TitlePlayers.Position = UDim2.fromOffset(10, 10)
+TitlePlayers.BackgroundTransparency = 1
+TitlePlayers.Text = "ESP SETTINGS"
+TitlePlayers.Font = Enum.Font.GothamBold
+TitlePlayers.TextSize = 11
+TitlePlayers.TextColor3 = Colors.TextDim
+TitlePlayers.TextXAlignment = Enum.TextXAlignment.Left
+TitlePlayers.Parent = pagePlayers
+
+local espEnabled = false
+local espObjects = {}
+
+createToggle(pagePlayers, "ESP Box (Highlight)", 40, function(state) espEnabled = state end)
+
+RunService.RenderStepped:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local character = player.Character
+            if espEnabled then
+                if not espObjects[player] then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Adornee = character
+                    highlight.FillColor = Colors.Accent
+                    highlight.OutlineColor = Colors.Accent
+                    highlight.FillTransparency = 0.5
+                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    highlight.Parent = ScreenGui
+                    espObjects[player] = highlight
+                end
+            else
+                if espObjects[player] then
+                    espObjects[player]:Destroy()
+                    espObjects[player] = nil
+                end
+            end
+        end
+    end
+end)
+
+-- ==========================================
+-- PÁGINA: HITBOX (VISIBLE)
+-- ==========================================
+local TitleHitbox = Instance.new("TextLabel")
+TitleHitbox.Size = UDim2.new(1, -20, 0, 30)
+TitleHitbox.Position = UDim2.fromOffset(10, 10)
+TitleHitbox.BackgroundTransparency = 1
+TitleHitbox.Text = "HITBOX SETTINGS"
+TitleHitbox.Font = Enum.Font.GothamBold
+TitleHitbox.TextSize = 11
+TitleHitbox.TextColor3 = Colors.TextDim
+TitleHitbox.TextXAlignment = Enum.TextXAlignment.Left
+TitleHitbox.Parent = pageHitbox
+
+local hitboxEnabled = false
+local hitboxSize = 5
+local hitboxData = {}
+
+createToggle(pageHitbox, "Hitbox Cuadrada", 40, function(state) hitboxEnabled = state end)
 
 local sizeLabel = Instance.new("TextLabel")
 sizeLabel.Size = UDim2.new(1, -20, 0, 20)
-sizeLabel.Position = UDim2.fromOffset(10, 120)
+sizeLabel.Position = UDim2.fromOffset(10, 80)
 sizeLabel.BackgroundTransparency = 1
-sizeLabel.Text = "Hitbox Size: " .. hitboxSize
+sizeLabel.Text = "Tamaño: " .. hitboxSize
 sizeLabel.Font = Enum.Font.Gotham
 sizeLabel.TextSize = 12
 sizeLabel.TextColor3 = Colors.TextDim
 sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
-sizeLabel.Parent = pagePlayers
+sizeLabel.Parent = pageHitbox
 
-local btnSizeMinus = Instance.new("TextButton")
-btnSizeMinus.Size = UDim2.fromOffset(50, 25)
-btnSizeMinus.Position = UDim2.fromOffset(10, 145)
-btnSizeMinus.BackgroundColor3 = Colors.Input
-btnSizeMinus.Text = "-"
-btnSizeMinus.TextColor3 = Colors.Text
-btnSizeMinus.Parent = pagePlayers
-local c1 = Instance.new("UICorner") c1.CornerRadius = UDim.new(0, 4) c1.Parent = btnSizeMinus
-registerButton(btnSizeMinus, function()
-    hitboxSize = math.max(1, hitboxSize - 0.1)
-    sizeLabel.Text = "Hitbox Size: " .. string.format("%.1f", hitboxSize)
+local btnMinus = Instance.new("TextButton")
+btnMinus.Size = UDim2.fromOffset(50, 25)
+btnMinus.Position = UDim2.fromOffset(10, 105)
+btnMinus.BackgroundColor3 = Colors.Input
+btnMinus.Text = "-"
+btnMinus.TextColor3 = Colors.Text
+btnMinus.Parent = pageHitbox
+local c1 = Instance.new("UICorner") c1.CornerRadius = UDim.new(0, 4) c1.Parent = btnMinus
+registerButton(btnMinus, function()
+    hitboxSize = math.max(1, hitboxSize - 1)
+    sizeLabel.Text = "Tamaño: " .. hitboxSize
 end)
 
-local btnSizePlus = Instance.new("TextButton")
-btnSizePlus.Size = UDim2.fromOffset(50, 25)
-btnSizePlus.Position = UDim2.fromOffset(70, 145)
-btnSizePlus.BackgroundColor3 = Colors.Input
-btnSizePlus.Text = "+"
-btnSizePlus.TextColor3 = Colors.Text
-btnSizePlus.Parent = pagePlayers
-local c2 = Instance.new("UICorner") c2.CornerRadius = UDim.new(0, 4) c2.Parent = btnSizePlus
-registerButton(btnSizePlus, function()
-    hitboxSize = math.min(10, hitboxSize + 0.1)
-    sizeLabel.Text = "Hitbox Size: " .. string.format("%.1f", hitboxSize)
+local btnPlus = Instance.new("TextButton")
+btnPlus.Size = UDim2.fromOffset(50, 25)
+btnPlus.Position = UDim2.fromOffset(70, 105)
+btnPlus.BackgroundColor3 = Colors.Input
+btnPlus.Text = "+"
+btnPlus.TextColor3 = Colors.Text
+btnPlus.Parent = pageHitbox
+local c2 = Instance.new("UICorner") c2.CornerRadius = UDim.new(0, 4) c2.Parent = btnPlus
+registerButton(btnPlus, function()
+    hitboxSize = math.min(20, hitboxSize + 1)
+    sizeLabel.Text = "Tamaño: " .. hitboxSize
 end)
 
--- LÓGICA DEL HITBOX
+-- Lógica de la Hitbox Visible
 RunService.Heartbeat:Connect(function()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local character = player.Character
-            local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-            
-            if torso then
+            local hrp = character:FindFirstChild("HumanoidRootPart")
+            local humanoid = character:FindFirstChild("Humanoid")
+
+            if hrp and humanoid and humanoid.Health > 0 then
                 if hitboxEnabled then
                     if not hitboxData[player] then
-                        hitboxData[player] = { OriginalSize = torso.Size, OriginalTransparency = torso.Transparency }
+                        local box = Instance.new("Part")
+                        box.Name = "HitboxPart"
+                        box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                        
+                        -- AQUÍ ESTÁ EL CAMBIO PARA QUE SEA VISIBLE
+                        box.Transparency = 0.5 -- 0 es sólido, 1 es invisible. 0.5 es semitransparente
+                        box.Color = Colors.Green -- Color verde
+                        box.Material = Enum.Material.Neon -- Material brillante (opcional)
+                        
+                        box.CanCollide = false
+                        box.CanTouch = true
+                        box.CanQuery = true
+                        box.Massless = true
+                        box.Anchored = true 
+                        box.Parent = workspace
+                        
+                        -- Un Highlight para que se vea el borde a través de las paredes
+                        local highlight = Instance.new("Highlight")
+                        highlight.Adornee = box
+                        highlight.FillColor = Colors.Green
+                        highlight.OutlineColor = Colors.Green
+                        highlight.FillTransparency = 0.8 -- El interior del highlight más transparente
+                        highlight.OutlineTransparency = 0
+                        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        highlight.Parent = box
+                        
+                        hitboxData[player] = {Box = box, Highlight = highlight}
                     end
                     
-                    local origSize = hitboxData[player].OriginalSize
-                    torso.Size = Vector3.new(origSize.X * hitboxSize, origSize.Y * (1 + (hitboxSize - 1) * 0.2), origSize.Z * hitboxSize)
-                    torso.Transparency = hitboxInvisible and 1 or 0
+                    local data = hitboxData[player]
+                    if data and data.Box and data.Box.Parent then
+                        data.Box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                        data.Box.CFrame = hrp.CFrame 
+                    end
                 else
                     if hitboxData[player] then
-                        torso.Size = hitboxData[player].OriginalSize
-                        torso.Transparency = hitboxData[player].OriginalTransparency
+                        if hitboxData[player].Box then hitboxData[player].Box:Destroy() end
                         hitboxData[player] = nil
                     end
                 end
@@ -296,17 +350,13 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Botón para volver a Config
-local BackToConfigBtn = Instance.new("TextButton")
-BackToConfigBtn.Size = UDim2.new(1, -20, 0, 30)
-BackToConfigBtn.Position = UDim2.fromOffset(10, 10)
-BackToConfigBtn.BackgroundColor3 = Colors.Input
-BackToConfigBtn.Text = "Back to Configs"
-BackToConfigBtn.Font = Enum.Font.GothamBold
-BackToConfigBtn.TextSize = 12
-BackToConfigBtn.TextColor3 = Colors.Text
-BackToConfigBtn.Parent = MainFrame -- Lo puse en MainFrame temporalmente para que se vea
-local BackCorner = Instance.new("UICorner") BackCorner.CornerRadius = UDim.new(0, 4) BackCorner.Parent = BackToConfigBtn
-registerButton(BackToConfigBtn, function() switchPage(pageConfig) end)
+-- Limpiar cajas al salir
+Players.PlayerRemoving:Connect(function(player)
+    if hitboxData[player] then
+        if hitboxData[player].Box then hitboxData[player].Box:Destroy() end
+        hitboxData[player] = nil
+    end
+end)
 
-switchPage(pageConfig)
+switchPage(pagePlayers)
+print("Gabriel Xiter [Duelos - Hitbox Visible] cargado.")
