@@ -1,19 +1,42 @@
 -- ==========================================
--- GABRIELITOXIT - UNIVERSAL (DELTA/SOLARA/XENO)
+-- GABRIELITOXIT - MODO PRO (ANTI-FALLOS)
 -- ==========================================
 
+-- 1. DETECCIÓN DE EJECUTOR Y ENTORNO
+local isDelta = identifyexecutor and string.find(string.lower(identifyexecutor()), "delta") ~= nil
+local isSolara = identifyexecutor and string.find(string.lower(identifyexecutor()), "solara") ~= nil
+local isXeno = identifyexecutor and string.find(string.lower(identifyexecutor()), "xeno") ~= nil
+
+print("Ejecutor detectado - Delta:", isDelta, "| Solara:", isSolara, "| Xeno:", isXeno)
+
+-- 2. SERVICIOS
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- Función de compatibilidad para la interfaz
-local function getParentGui()
+-- 3. PADRE DE LA UI (A PRUEBA DE BALAS)
+local function getParent()
+    -- Intentamos gethui primero (Delta/Solara)
     local success, hui = pcall(function() return gethui() end)
     if success and hui then return hui end
-    return game:GetService("CoreGui")
+    
+    -- Si falla, usamos CoreGui (Xeno / Universal)
+    local success2, cg = pcall(function() return game:GetService("CoreGui") end)
+    if success2 and cg then return cg end
+    
+    -- Último recurso: PlayerGui
+    return LocalPlayer:WaitForChild("PlayerGui")
 end
 
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GabrielitoXit_Pro"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 999999 -- Capa superior para que los clics funcionen
+ScreenGui.Parent = getParent()
+
+-- 4. VARIABLES GLOBALES
 local Theme = {
     Background = Color3.fromRGB(25, 25, 25),
     Panel = Color3.fromRGB(40, 40, 40),
@@ -22,6 +45,7 @@ local Theme = {
     Red = Color3.fromRGB(255, 60, 60)
 }
 
+-- Tablas compartidas
 local Toggles = { ["ESP Frame"] = false, ["ESP Name"] = false, ["Hitbox"] = false }
 local espColor = Theme.Green
 local hitboxSize = 1.5
@@ -30,14 +54,8 @@ local espObjects = {}
 local originalSizes = {}
 
 -- ==========================================
--- INTERFAZ
+-- 5. INTERFAZ GRÁFICA (A PRUEBA DE CLICS)
 -- ==========================================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GabrielitoXit_UI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling -- Mejor compatibilidad
-ScreenGui.Parent = getParentGui()
-
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 350, 0, 300)
 MainFrame.Position = UDim2.new(0.5, -175, 0.5, -150)
@@ -47,6 +65,7 @@ MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
+-- Barra superior
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 30)
 TopBar.BackgroundColor3 = Theme.Panel
@@ -56,13 +75,14 @@ TopBar.Parent = MainFrame
 local TitleText = Instance.new("TextLabel")
 TitleText.Size = UDim2.new(1, -90, 1, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "  GabrielitoXit"
+TitleText.Text = "  GabrielitoXit [PRO]"
 TitleText.TextColor3 = Theme.TextColor
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextSize = 13
 TitleText.Parent = TopBar
 
+-- Botones de ventana
 local function createTopButton(text, posX, color)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 30, 1, 0)
@@ -86,6 +106,7 @@ ContentFrame.Position = UDim2.new(0, 0, 0, 30)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
+-- Pestañas
 local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(1, 0, 0, 30)
 TabBar.BackgroundColor3 = Theme.Panel
@@ -127,6 +148,7 @@ ESPTab.Visible = false
 ESPTab.CanvasSize = UDim2.new(0, 0, 0, 400)
 ESPTab.Parent = ContentFrame
 
+-- Eventos de pestañas
 HitboxBtn.MouseButton1Click:Connect(function()
     HitboxTab.Visible = true; ESPTab.Visible = false
     HitboxBtn.TextColor3 = Theme.Green; ESPBtn.TextColor3 = Theme.TextColor
@@ -137,6 +159,7 @@ ESPBtn.MouseButton1Click:Connect(function()
     HitboxBtn.TextColor3 = Theme.TextColor; ESPBtn.TextColor3 = Theme.Green
 end)
 
+-- Eventos de ventana
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 MinBtn.MouseButton1Click:Connect(function() 
     ContentFrame.Visible = not ContentFrame.Visible
@@ -147,7 +170,7 @@ MaxBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- FUNCIONES DE CREACIÓN
+-- 6. FUNCIONES DE CREACIÓN
 -- ==========================================
 local function createLabel(parent, text, size, pos, color)
     local lbl = Instance.new("TextLabel")
@@ -164,7 +187,13 @@ local function createButton(parent, text, size, pos, callback)
     btn.BackgroundColor3 = Theme.Panel; btn.TextColor3 = Theme.TextColor
     btn.Font = Enum.Font.GothamSemibold; btn.TextSize = 12
     btn.Text = text; btn.BorderSizePixel = 0; btn.Parent = parent
-    btn.MouseButton1Click:Connect(callback)
+    btn.AutoButtonColor = true
+    
+    -- EL TRUCO PRO: Usamos task.spawn para que el clic no se congele
+    btn.MouseButton1Click:Connect(function()
+        task.spawn(callback)
+    end)
+    
     return btn
 end
 
@@ -196,7 +225,7 @@ local function createToggle(parent, title, yPos)
 end
 
 -- ==========================================
--- CONTENIDO HITBOX
+-- 7. CONTENIDO HITBOX
 -- ==========================================
 createLabel(HitboxTab, "Hitbox Settings", UDim2.new(0, 200, 0, 35), UDim2.new(0, 10, 0, 10), Theme.Green)
 createToggle(HitboxTab, "Hitbox", 50) 
@@ -226,7 +255,7 @@ createButton(HitboxTab, "+", UDim2.new(0, 35, 0, 30), UDim2.new(0, 205, 0, 145),
 end)
 
 -- ==========================================
--- CONTENIDO ESP
+-- 8. CONTENIDO ESP
 -- ==========================================
 createLabel(ESPTab, "ESP Settings", UDim2.new(0, 200, 0, 35), UDim2.new(0, 10, 0, 10), Theme.Green)
 createToggle(ESPTab, "ESP Frame", 50)
@@ -255,112 +284,114 @@ colorBtn.BackgroundColor3 = espColor
 colorBtn.TextColor3 = Theme.Background
 
 -- ==========================================
--- LÓGICA DEL HITBOX
+-- 9. HITBOX LOOP (EN HILO SEPARADO)
 -- ==========================================
-RunService.RenderStepped:Connect(function()
-    if not Toggles["Hitbox"] then return end
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local character = player.Character
-            local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-            local humanoid = character:FindFirstChild("Humanoid")
-            
-            if torso and humanoid and humanoid.Health > 0 then
-                if not originalSizes[player] then
-                    originalSizes[player] = torso.Size
+task.spawn(function()
+    while task.wait() do
+        if Toggles["Hitbox"] then
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    local character = player.Character
+                    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+                    local humanoid = character:FindFirstChild("Humanoid")
+                    
+                    if torso and humanoid and humanoid.Health > 0 then
+                        if not originalSizes[player] then
+                            originalSizes[player] = torso.Size
+                        end
+                        
+                        local originalSize = originalSizes[player]
+                        torso.Size = Vector3.new(
+                            originalSize.X * hitboxSize, 
+                            originalSize.Y * hitboxSize, 
+                            originalSize.Z * hitboxSize
+                        )
+                        torso.Transparency = hitboxTransparency / 100
+                    end
                 end
-                
-                local originalSize = originalSizes[player]
-                torso.Size = Vector3.new(
-                    originalSize.X * hitboxSize, 
-                    originalSize.Y * hitboxSize, 
-                    originalSize.Z * hitboxSize
-                )
-                torso.Transparency = hitboxTransparency / 100
             end
         end
     end
 end)
 
 -- ==========================================
--- LÓGICA DEL ESP (HIGHLIGHT + BILLBOARD)
+-- 10. ESP LOOP (EN HILO SEPARADO)
 -- ==========================================
-RunService.RenderStepped:Connect(function()
-    local espActive = Toggles["ESP Frame"]
-    local nameActive = Toggles["ESP Name"]
+task.spawn(function()
+    while task.wait() do
+        local espActive = Toggles["ESP Frame"]
+        local nameActive = Toggles["ESP Name"]
 
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local character = player.Character
-            local humanoid = character:FindFirstChild("Humanoid")
-            local head = character:FindFirstChild("Head")
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local character = player.Character
+                local humanoid = character:FindFirstChild("Humanoid")
+                local head = character:FindFirstChild("Head")
 
-            if not humanoid or humanoid.Health <= 0 then
-                if espObjects[player] then
-                    if espObjects[player].Highlight then espObjects[player].Highlight:Destroy() end
-                    if espObjects[player].NameGui then espObjects[player].NameGui:Destroy() end
-                    espObjects[player] = nil
+                if not humanoid or humanoid.Health <= 0 then
+                    if espObjects[player] then
+                        if espObjects[player].Highlight then espObjects[player].Highlight:Destroy() end
+                        if espObjects[player].NameGui then espObjects[player].NameGui:Destroy() end
+                        espObjects[player] = nil
+                    end
+                    continue
                 end
-                continue
-            end
 
-            if not espObjects[player] then
-                espObjects[player] = {}
+                if not espObjects[player] then
+                    espObjects[player] = {}
+                    
+                    local highlight = Instance.new("Highlight")
+                    highlight.Adornee = character
+                    highlight.FillTransparency = 1 
+                    highlight.OutlineTransparency = 0
+                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    highlight.Parent = ScreenGui
+                    espObjects[player].Highlight = highlight
+
+                    local billboard = Instance.new("BillboardGui")
+                    billboard.Adornee = head
+                    billboard.Size = UDim2.new(0, 200, 0, 50)
+                    billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+                    billboard.AlwaysOnTop = true
+                    billboard.Parent = ScreenGui
+                    
+                    local nameLabel = Instance.new("TextLabel")
+                    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+                    nameLabel.BackgroundTransparency = 1
+                    nameLabel.Text = player.Name
+                    nameLabel.TextColor3 = espColor
+                    nameLabel.TextStrokeTransparency = 0
+                    nameLabel.Font = Enum.Font.GothamBold
+                    nameLabel.TextSize = 14
+                    nameLabel.Parent = billboard
+                    
+                    espObjects[player].NameGui = billboard
+                    espObjects[player].NameLabel = nameLabel
+                end
+
+                local obj = espObjects[player]
                 
-                -- Highlight (Cuadro alrededor del personaje)
-                local highlight = Instance.new("Highlight")
-                highlight.Adornee = character
-                highlight.FillTransparency = 1 
-                highlight.OutlineTransparency = 0
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlight.Parent = ScreenGui -- Importante ponerlo en la UI para que no se borre
-                espObjects[player].Highlight = highlight
+                if espActive then
+                    obj.Highlight.Enabled = true
+                    obj.Highlight.OutlineColor = espColor
+                else
+                    obj.Highlight.Enabled = false
+                end
 
-                -- BillboardGui (Nombre arriba de la cabeza)
-                local billboard = Instance.new("BillboardGui")
-                billboard.Adornee = head
-                billboard.Size = UDim2.new(0, 200, 0, 50)
-                billboard.StudsOffset = Vector3.new(0, 2.5, 0)
-                billboard.AlwaysOnTop = true
-                billboard.Parent = ScreenGui
-                
-                local nameLabel = Instance.new("TextLabel")
-                nameLabel.Size = UDim2.new(1, 0, 1, 0)
-                nameLabel.BackgroundTransparency = 1
-                nameLabel.Text = player.Name
-                nameLabel.TextColor3 = espColor
-                nameLabel.TextStrokeTransparency = 0
-                nameLabel.Font = Enum.Font.GothamBold
-                nameLabel.TextSize = 14
-                nameLabel.Parent = billboard
-                
-                espObjects[player].NameGui = billboard
-                espObjects[player].NameLabel = nameLabel
-            end
-
-            local obj = espObjects[player]
-            
-            if espActive then
-                obj.Highlight.Enabled = true
-                obj.Highlight.OutlineColor = espColor
-            else
-                obj.Highlight.Enabled = false
-            end
-
-            if nameActive then
-                obj.NameGui.Enabled = true
-                obj.NameLabel.TextColor3 = espColor
-                -- Añadimos la distancia
-                local dist = math.floor((Camera.CFrame.Position - character.HumanoidRootPart.Position).Magnitude)
-                obj.NameLabel.Text = player.Name .. " [" .. dist .. "m]"
-            else
-                obj.NameGui.Enabled = false
+                if nameActive then
+                    obj.NameGui.Enabled = true
+                    obj.NameLabel.TextColor3 = espColor
+                    local dist = math.floor((Camera.CFrame.Position - character.HumanoidRootPart.Position).Magnitude)
+                    obj.NameLabel.Text = player.Name .. " [" .. dist .. "m]"
+                else
+                    obj.NameGui.Enabled = false
+                end
             end
         end
     end
 end)
 
+-- Limpieza
 Players.PlayerRemoving:Connect(function(player)
     if espObjects[player] then
         if espObjects[player].Highlight then espObjects[player].Highlight:Destroy() end
