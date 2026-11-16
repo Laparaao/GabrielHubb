@@ -1,5 +1,5 @@
 -- ==========================================
--- GABRIELITOXITER - HITBOX VISIBLE (SEGURO)
+-- GABRIELITOXITER - ESP SEGURO (ANTI-KICK)
 -- ==========================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,7 +8,6 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Limpiar
 for _, gui in pairs(PlayerGui:GetChildren()) do
     if gui.Name == "GabrielitoXiter" then gui:Destroy() end
 end
@@ -22,9 +21,10 @@ local hitboxSize = 6
 local fovRadius = 150
 local targetPart = "Head"
 local hitboxObjects = {}
+local espObjects = {}
 
 -- ==========================================
--- CREACIÓN DE LA UI
+-- CREACIÓN DE LA UI (Igual que antes)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GabrielitoXiter"
@@ -98,7 +98,6 @@ PageVis.BackgroundTransparency = 1
 PageVis.Visible = false
 PageVis.Parent = CenterPanel
 
--- Switch
 local function createSwitch(parent, text, y, cb)
     local f = Instance.new("Frame")
     f.Size = UDim2.new(1, -20, 0, 30)
@@ -141,13 +140,31 @@ local function createSwitch(parent, text, y, cb)
     end)
 end
 
--- Controles
 createSwitch(PageAim, "Enable Aimbot", 10, function(s) aimbotEnabled = s end)
 createSwitch(PageAim, "Team Check", 50, function(s) teamCheck = s end)
 
-createSwitch(PageVis, "Enable ESP", 10, function(s) espEnabled = s end)
-createSwitch(PageVis, "Enable Hitbox (Visible)", 50, function(s) hitboxEnabled = s end)
+createSwitch(PageVis, "Enable ESP (Safe)", 10, function(s) 
+    espEnabled = s 
+    if not s then
+        -- Limpiar ESPs al apagar
+        for p, obj in pairs(espObjects) do
+            if obj then obj:Destroy() end
+        end
+        espObjects = {}
+    end
+end)
 
+createSwitch(PageVis, "Enable Hitbox (Visible)", 50, function(s) 
+    hitboxEnabled = s 
+    if not s then
+        for p, box in pairs(hitboxObjects) do
+            if box then box:Destroy() end
+        end
+        hitboxObjects = {}
+    end
+end)
+
+-- Slider de Hitbox
 local sizeLabel = Instance.new("TextLabel")
 sizeLabel.Size = UDim2.new(1, -20, 0, 20)
 sizeLabel.Position = UDim2.fromOffset(10, 90)
@@ -186,7 +203,7 @@ btnPlus.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- LÓGICA DEL JUEGO (AIMBOT Y ESP)
+-- LÓGICA DEL JUEGO
 -- ==========================================
 RunService.RenderStepped:Connect(function()
     if aimbotEnabled then
@@ -213,57 +230,69 @@ RunService.RenderStepped:Connect(function()
             if closest then Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, closest.Position) end
         end
     end
+end)
 
-    if espEnabled then
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and not p.Character:FindFirstChild("Highlight") then
-                local hl = Instance.new("Highlight")
-                hl.Adornee = p.Character
-                hl.FillColor = Color3.fromRGB(0, 150, 255)
-                hl.FillTransparency = 0.5
-                hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                hl.Parent = p.Character
+-- ==========================================
+-- LÓGICA DEL ESP SEGURO (BILLBOARD GUI)
+-- ==========================================
+RunService.Heartbeat:Connect(function()
+    if not espEnabled then return end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local head = p.Character:FindFirstChild("Head")
+            local hum = p.Character:FindFirstChild("Humanoid")
+            
+            if head and hum and hum.Health > 0 then
+                if not espObjects[p] or not espObjects[p].Parent then
+                    -- Creamos un cuadro brillante sobre la cabeza
+                    local gui = Instance.new("BillboardGui")
+                    gui.Name = "SafeESP"
+                    gui.Adornee = head
+                    gui.Size = UDim2.new(0, 50, 0, 50)
+                    gui.StudsOffset = Vector3.new(0, 2, 0)
+                    gui.AlwaysOnTop = true
+                    gui.Parent = PlayerGui -- Lo ponemos en PlayerGui para que parezca del juego
+                    
+                    local frame = Instance.new("Frame")
+                    frame.Size = UDim2.new(1, 0, 1, 0)
+                    frame.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+                    frame.BackgroundTransparency = 0.5
+                    frame.BorderSizePixel = 0
+                    frame.Parent = gui
+                    
+                    espObjects[p] = gui
+                end
             end
         end
     end
 end)
 
 -- ==========================================
--- HITBOX VISIBLE (SIN ANTI-CHEAT KICK)
+-- LÓGICA DE HITBOX VISIBLE
 -- ==========================================
 RunService.Heartbeat:Connect(function()
     if not hitboxEnabled then return end
-
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
             local hrp = p.Character:FindFirstChild("HumanoidRootPart")
             local hum = p.Character:FindFirstChild("Humanoid")
-
             if hrp and hum and hum.Health > 0 then
-                -- Si no existe la caja para este enemigo, la creamos
                 if not hitboxObjects[p] or not hitboxObjects[p].Parent then
                     local box = Instance.new("Part")
                     box.Name = "VisibleHitbox"
                     box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    
-                    -- AQUÍ HACEMOS QUE SE VEA:
-                    box.Transparency = 0.5 -- 0 es sólido, 1 es invisible. 0.5 es semitransparente.
-                    box.Color = Color3.fromRGB(0, 150, 255) -- Color azul
-                    box.Material = Enum.Material.ForceField -- Material brillante (estilo holograma)
-                    
+                    box.Transparency = 0.5 
+                    box.Color = Color3.fromRGB(0, 150, 255) 
+                    box.Material = Enum.Material.ForceField 
                     box.CanCollide = false
                     box.CanQuery = true
-                    box.Anchored = true -- Anclada para que no afecte la física
-                    box.Parent = workspace -- En el mundo, no en el personaje
-                    
+                    box.Anchored = true 
+                    box.Parent = workspace 
                     hitboxObjects[p] = box
                 end
-
-                -- Actualizamos la caja
                 local box = hitboxObjects[p]
                 if box and box.Parent then
                     box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    -- Movemos la caja a la posición del enemigo
                     box.CFrame = hrp.CFrame 
                 end
             end
@@ -271,12 +300,9 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Limpieza cuando se apaga o se sale
 Players.PlayerRemoving:Connect(function(p)
-    if hitboxObjects[p] then
-        hitboxObjects[p]:Destroy()
-        hitboxObjects[p] = nil
-    end
+    if hitboxObjects[p] then hitboxObjects[p]:Destroy() hitboxObjects[p] = nil end
+    if espObjects[p] then espObjects[p]:Destroy() espObjects[p] = nil end
 end)
 
 -- Cambio de pestañas
@@ -294,4 +320,4 @@ tabVis.MouseButton1Click:Connect(function()
     PageVis.Visible = true
 end)
 
-print("GabrielitoXiter - Hitbox Visible Cargada.")
+print("GabrielitoXiter - ESP Seguro Cargado.")
