@@ -1,299 +1,252 @@
--- GABRIELHUB V2
+-- ==========================================
+-- 1. SERVICIOS Y VARIABLES GLOBALES
+-- ==========================================
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+-- Colores del Tema
+local Theme = {
+    Background = Color3.fromRGB(25, 25, 25),
+    Panel = Color3.fromRGB(40, 40, 40),
+    TextColor = Color3.fromRGB(200, 200, 200),
+    Green = Color3.fromRGB(0, 255, 110),
+    Red = Color3.fromRGB(255, 60, 60)
+}
 
--- COLORS
-local Green = Color3.fromRGB(0, 255, 110)
-local Background = Color3.fromRGB(13, 15, 17)
-local Panel = Color3.fromRGB(22, 25, 27)
-local TextColor = Color3.fromRGB(235, 240, 238)
-local Muted = Color3.fromRGB(140, 150, 145)
+local Toggles = {} 
+local espDrawings = {} 
 
--- CLEAN OLD GUI
-local old = PlayerGui:FindFirstChild("GabrielHubV2")
-if old then old:Destroy() end
+-- ==========================================
+-- 2. CREACIÓN DE LA INTERFAZ (VENTANA BASE)
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GabrielitoXit_UI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
 
--- GUI
-local Gui = Instance.new("ScreenGui")
-Gui.Name = "GabrielHubV2"
-Gui.ResetOnSpawn = false
-Gui.Parent = PlayerGui
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 350, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -150)
+MainFrame.BackgroundColor3 = Theme.Background
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
 
-local function corner(obj, radius)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, radius)
-    c.Parent = obj
+-- Barra Superior (Título y Botones)
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 30)
+TopBar.BackgroundColor3 = Theme.Panel
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Size = UDim2.new(1, -90, 1, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "  GabrielitoXit"
+TitleText.TextColor3 = Theme.TextColor
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextSize = 13
+TitleText.Parent = TopBar
+
+-- Botones de la ventana (X, [], -)
+local function createTopButton(text, posX, color)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 30, 1, 0)
+    btn.Position = UDim2.new(1, posX, 0, 0)
+    btn.BackgroundTransparency = 1
+    btn.Text = text
+    btn.TextColor3 = color
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.Parent = TopBar
+    return btn
 end
 
-local function label(parent, text, size, position, color)
-    local obj = Instance.new("TextLabel")
-    obj.Size = size
-    obj.Position = position
-    obj.BackgroundTransparency = 1
-    obj.Text = text
-    obj.TextColor3 = color or TextColor
-    obj.Font = Enum.Font.GothamBold
-    obj.TextSize = 14
-    obj.TextXAlignment = Enum.TextXAlignment.Left
-    obj.Parent = parent
-    return obj
-end
+local CloseBtn = createTopButton("X", 0, Theme.Red)
+local MaxBtn = createTopButton("□", -30, Theme.TextColor)
+local MinBtn = createTopButton("-", -60, Theme.TextColor)
 
-local function button(parent, text, size, position, callback)
-    local obj = Instance.new("TextButton")
-    obj.Size = size
-    obj.Position = position
-    obj.BackgroundColor3 = Panel
-    obj.BorderSizePixel = 0
-    obj.Text = text
-    obj.TextColor3 = TextColor
-    obj.Font = Enum.Font.GothamBold
-    obj.TextSize = 12
-    obj.Parent = parent
-    corner(obj, 7)
-    obj.MouseButton1Click:Connect(callback)
-    return obj
-end
+-- Contenedor Principal (Donde va el contenido)
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(1, 0, 1, -30)
+ContentFrame.Position = UDim2.new(0, 0, 0, 30)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Parent = MainFrame
 
--- MAIN WINDOW
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.Size = UDim2.fromOffset(650, 430)
-Main.Position = UDim2.new(0.5, -325, 0.5, -215)
-Main.BackgroundColor3 = Background
-Main.BorderSizePixel = 0
-Main.Parent = Gui
-corner(Main, 12)
+-- ==========================================
+-- 3. SISTEMA DE PESTAÑAS (TABS)
+-- ==========================================
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(1, 0, 0, 30)
+TabBar.BackgroundColor3 = Theme.Panel
+TabBar.BackgroundTransparency = 0.5
+TabBar.Parent = ContentFrame
 
--- SIDEBAR
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0, 155, 1, 0)
-Sidebar.BackgroundColor3 = Color3.fromRGB(17, 20, 21)
-Sidebar.BorderSizePixel = 0
-Sidebar.Parent = Main
-corner(Sidebar, 12)
+local HitboxBtn = Instance.new("TextButton")
+HitboxBtn.Size = UDim2.new(0.5, 0, 1, 0)
+HitboxBtn.BackgroundTransparency = 1
+HitboxBtn.Text = "Hitbox"
+HitboxBtn.TextColor3 = Theme.Green
+HitboxBtn.Font = Enum.Font.GothamSemibold
+HitboxBtn.TextSize = 12
+HitboxBtn.Parent = TabBar
 
-label(Sidebar, "GABRIELHUB",
-    UDim2.fromOffset(140, 35),
-    UDim2.fromOffset(12, 10), Green)
+local ESPBtn = Instance.new("TextButton")
+ESPBtn.Size = UDim2.new(0.5, 0, 1, 0)
+ESPBtn.Position = UDim2.new(0.5, 0, 0, 0)
+ESPBtn.BackgroundTransparency = 1
+ESPBtn.Text = "ESP"
+ESPBtn.TextColor3 = Theme.TextColor
+ESPBtn.Font = Enum.Font.GothamSemibold
+ESPBtn.TextSize = 12
+ESPBtn.Parent = TabBar
 
-label(Sidebar, "VERSION 2.0",
-    UDim2.fromOffset(130, 20),
-    UDim2.fromOffset(12, 43), Muted)
+-- Contenedores de cada pestaña
+local HitboxTab = Instance.new("ScrollingFrame")
+HitboxTab.Size = UDim2.new(1, 0, 1, -30)
+HitboxTab.Position = UDim2.new(0, 0, 0, 30)
+HitboxTab.BackgroundTransparency = 1
+HitboxTab.Visible = true
+HitboxTab.CanvasSize = UDim2.new(0, 0, 0, 400)
+HitboxTab.Parent = ContentFrame
 
--- CONTENT
-local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, -170, 1, -20)
-Content.Position = UDim2.fromOffset(160, 10)
-Content.BackgroundTransparency = 1
-Content.Parent = Main
+local ESPTab = Instance.new("ScrollingFrame")
+ESPTab.Size = UDim2.new(1, 0, 1, -30)
+ESPTab.Position = UDim2.new(0, 0, 0, 30)
+ESPTab.BackgroundTransparency = 1
+ESPTab.Visible = false
+ESPTab.CanvasSize = UDim2.new(0, 0, 0, 400)
+ESPTab.Parent = ContentFrame
 
-local Pages = {}
-
-local function createPage(name)
-    local page = Instance.new("Frame")
-    page.Name = name
-    page.Size = UDim2.fromScale(1, 1)
-    page.BackgroundTransparency = 1
-    page.Visible = false
-    page.Parent = Content
-    Pages[name] = page
-    return page
-end
-
-local Home = createPage("Home")
-local Hitbox = createPage("Hitbox")
-local ESP = createPage("ESP")
-local Whitelist = createPage("Whitelist")
-local Movement = createPage("Movement")
-local Settings = createPage("Settings")
-
--- HOME
-label(Home, "Dashboard",
-    UDim2.fromOffset(300, 35),
-    UDim2.fromOffset(10, 10), Green)
-
-label(Home, "Welcome to GabrielHub V2",
-    UDim2.fromOffset(350, 25),
-    UDim2.fromOffset(10, 55))
-local Avatar = Instance.new("ImageLabel")
-Avatar.Size = UDim2.fromOffset(75, 75)
-Avatar.Position = UDim2.fromOffset(10, 130)
-Avatar.BackgroundColor3 = Panel
-Avatar.Parent = Home
-corner(Avatar, 12)
-
-local success, image = pcall(function()
-    return Players:GetUserThumbnailAsync(
-        LocalPlayer.UserId,
-        Enum.ThumbnailType.HeadShot,
-        Enum.ThumbnailSize.Size150x150
-    )
+-- Lógica para cambiar de pestaña
+HitboxBtn.MouseButton1Click:Connect(function()
+    HitboxTab.Visible = true
+    ESPTab.Visible = false
+    HitboxBtn.TextColor3 = Theme.Green
+    ESPBtn.TextColor3 = Theme.TextColor
 end)
 
-if success then Avatar.Image = image end
+ESPBtn.MouseButton1Click:Connect(function()
+    HitboxTab.Visible = false
+    ESPTab.Visible = true
+    HitboxBtn.TextColor3 = Theme.TextColor
+    ESPBtn.TextColor3 = Theme.Green
+end)
 
-label(Home, LocalPlayer.DisplayName,
-    UDim2.fromOffset(250, 25),
-    UDim2.fromOffset(100, 140), Green)
+-- Lógica de los botones de ventana
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
-label(Home, "@" .. LocalPlayer.Name,
-    UDim2.fromOffset(250, 25),
-    UDim2.fromOffset(100, 168), Muted)
+MinBtn.MouseButton1Click:Connect(function() 
+    ContentFrame.Visible = not ContentFrame.Visible
+    MainFrame.Size = ContentFrame.Visible and UDim2.new(0, 350, 0, 300) or UDim2.new(0, 350, 0, 30)
+end)
 
--- WHITELIST
-label(Whitelist, "Player Whitelist",
-    UDim2.fromOffset(350, 35),
-    UDim2.fromOffset(10, 10), Green)
-
-label(Whitelist, "Selected players are excluded",
-    UDim2.fromOffset(350, 25),
-    UDim2.fromOffset(10, 45), Muted)
-
-local List = Instance.new("ScrollingFrame")
-List.Size = UDim2.new(1, -20, 1, -85)
-List.Position = UDim2.fromOffset(10, 75)
-List.BackgroundColor3 = Panel
-List.BorderSizePixel = 0
-List.ScrollBarThickness = 4
-List.CanvasSize = UDim2.new()
-List.Parent = Whitelist
-corner(List, 8)
-
-local Layout = Instance.new("UIListLayout")
-Layout.Padding = UDim.new(0, 6)
-Layout.Parent = List
-
-local selected = {}
-
-local function refreshPlayers()
-    for _, item in ipairs(List:GetChildren()) do
-        if item:IsA("Frame") then
-            item:Destroy()
-        end
+-- Botón Maximizar/Restaurar
+local isMaximized = false
+MaxBtn.MouseButton1Click:Connect(function() 
+    isMaximized = not isMaximized
+    if isMaximized then
+        MainFrame.Size = UDim2.new(0, 500, 0, 400) -- Tamaño maximizado
+    else
+        MainFrame.Size = UDim2.new(0, 350, 0, 300) -- Tamaño normal
     end
+end)
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local row = Instance.new("Frame")
-            row.Size = UDim2.new(1, -10, 0, 42)
-            row.BackgroundColor3 = Background
-            row.BorderSizePixel = 0
-            row.Parent = List
-            corner(row, 6)
-
-            label(row, player.Name,
-                UDim2.new(0.65, 0, 1, 0),
-                UDim2.fromOffset(10, 0))
-
-            local selectButton = button(
-                row,
-                selected[player.UserId] and "SELECTED" or "SELECT",
-                UDim2.fromOffset(85, 27),
-                UDim2.new(1, -95, 0.5, -13),
-                function()
-                    selected[player.UserId] =
-                        not selected[player.UserId] or nil
-                    refreshPlayers()
-                end
-            )
-
-            if selected[player.UserId] then
-                selectButton.BackgroundColor3 = Green
-                selectButton.TextColor3 = Background
-            end
-        end
-    end
-
-    task.defer(function()
-        List.CanvasSize = UDim2.fromOffset(
-            0, Layout.AbsoluteContentSize.Y + 10
-        )
-    end)
+-- ==========================================
+-- 4. FUNCIONES DE CREACIÓN DE ELEMENTOS
+-- ==========================================
+local function createLabel(parent, text, size, pos, color)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = size
+    lbl.Position = pos
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = color or Theme.TextColor
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = parent
+    return lbl
 end
 
--- HITBOX OPTIONS
-local function makeToggle(parent, title, y)
+local function createButton(parent, text, size, pos, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = size
+    btn.Position = pos
+    btn.BackgroundColor3 = Theme.Panel
+    btn.TextColor3 = Theme.TextColor
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 12
+    btn.Text = text
+    btn.BorderSizePixel = 0
+    btn.Parent = parent
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+local function createToggle(parent, title, yPos)
     local enabled = false
-
-    label(parent, title,
-        UDim2.fromOffset(250, 30),
-        UDim2.fromOffset(15, y))
-
-    local btn = button(parent, "OFF",
-        UDim2.fromOffset(90, 30),
-        UDim2.fromOffset(300, y),
-        function()
-            enabled = not enabled
-            btn.Text = enabled and "ON" or "OFF"
-            btn.BackgroundColor3 = enabled and Green or Panel
-            btn.TextColor3 = enabled and Background or TextColor
-        end)
-
-    return function()
-        return enabled
-    end
+    createLabel(parent, title, UDim2.new(0, 200, 0, 30), UDim2.new(0, 15, 0, yPos), Theme.TextColor)
+    local btn = createButton(parent, "OFF", UDim2.new(0, 80, 0, 25), UDim2.new(0, 230, 0, yPos), function()
+        enabled = not enabled
+        btn.Text = enabled and "ON" or "OFF"
+        btn.BackgroundColor3 = enabled and Theme.Green or Theme.Panel
+        btn.TextColor3 = enabled and Theme.Background or Theme.TextColor
+        Toggles[title] = enabled
+    end)
+    return enabled
 end
 
-label(Hitbox, "Hitbox Settings",
-    UDim2.fromOffset(300, 35),
-    UDim2.fromOffset(10, 10), Green)
+-- ==========================================
+-- 5. CONTENIDO DE LA PESTAÑA HITBOX
+-- ==========================================
+createLabel(HitboxTab, "Hitbox Settings", UDim2.new(0, 200, 0, 35), UDim2.new(0, 10, 0, 10), Theme.Green)
 
-local hitboxEnabled = makeToggle(Hitbox, "Hitbox", 65)
+createToggle(HitboxTab, "Hitbox", 50) 
 
 local hitboxSize = 10
-label(Hitbox, "Size: 10",
-    UDim2.fromOffset(150, 25),
-    UDim2.fromOffset(15, 115), TextColor)
+local sizeLabel = createLabel(HitboxTab, "Size: 10", UDim2.new(0, 150, 0, 25), UDim2.new(0, 15, 0, 100), Theme.TextColor)
 
-button(Hitbox, "-", UDim2.fromOffset(35, 30),
-    UDim2.fromOffset(200, 110), function()
-        hitboxSize = math.max(1, hitboxSize - 1)
-        Hitbox:FindFirstChild("Size: 10").Text =
-            "Size: " .. hitboxSize
-    end)
+createButton(HitboxTab, "-", UDim2.new(0, 35, 0, 30), UDim2.new(0, 160, 0, 95), function()
+    hitboxSize = math.max(1, hitboxSize - 1)
+    sizeLabel.Text = "Size: " .. hitboxSize
+end)
 
-button(Hitbox, "+", UDim2.fromOffset(35, 30),
-    UDim2.fromOffset(245, 110), function()
-        hitboxSize = math.min(45, hitboxSize + 1)
-        Hitbox:FindFirstChild("Size: 10").Text =
-            "Size: " .. hitboxSize
-    end)
+createButton(HitboxTab, "+", UDim2.new(0, 35, 0, 30), UDim2.new(0, 205, 0, 95), function()
+    hitboxSize = math.min(45, hitboxSize + 1)
+    sizeLabel.Text = "Size: " .. hitboxSize
+end)
 
 local transparency = 0
-local transparencyLabel = label(Hitbox, "Transparency: 0%",
-    UDim2.fromOffset(250, 25),
-    UDim2.fromOffset(15, 165), TextColor)
+local transLabel = createLabel(HitboxTab, "Transparency: 0%", UDim2.new(0, 200, 0, 25), UDim2.new(0, 15, 0, 150), Theme.TextColor)
 
-button(Hitbox, "-", UDim2.fromOffset(35, 30),
-    UDim2.fromOffset(200, 160), function()
-        transparency = math.max(0, transparency - 10)
-        transparencyLabel.Text =
-            "Transparency: " .. transparency .. "%"
-    end)
+createButton(HitboxTab, "-", UDim2.new(0, 35, 0, 30), UDim2.new(0, 160, 0, 145), function()
+    transparency = math.max(0, transparency - 10)
+    transLabel.Text = "Transparency: " .. transparency .. "%"
+end)
 
-button(Hitbox, "+", UDim2.fromOffset(35, 30),
-    UDim2.fromOffset(245, 160), function()
-        transparency = math.min(100, transparency + 10)
-        transparencyLabel.Text =
-            "Transparency: " .. transparency .. "%"
-    end)
+createButton(HitboxTab, "+", UDim2.new(0, 35, 0, 30), UDim2.new(0, 205, 0, 145), function()
+    transparency = math.min(100, transparency + 10)
+    transLabel.Text = "Transparency: " .. transparency .. "%"
+end)
 
--- ESP OPTIONS
-label(ESP, "ESP Settings",
-    UDim2.fromOffset(300, 35),
-    UDim2.fromOffset(10, 10), Green)
+-- ==========================================
+-- 6. CONTENIDO DE LA PESTAÑA ESP
+-- ==========================================
+createLabel(ESPTab, "ESP Settings", UDim2.new(0, 200, 0, 35), UDim2.new(0, 10, 0, 10), Theme.Green)
 
-local espEnabled = makeToggle(ESP, "ESP Frame", 65)
-local nameEnabled = makeToggle(ESP, "ESP Name", 110)
+createToggle(ESPTab, "ESP Frame", 50)
+createToggle(ESPTab, "ESP Name", 95)
 
-local espColor = Color3.fromRGB(0, 255, 110)
+local espColor = Theme.Green
 
-label(ESP, "Frame Color",
-    UDim2.fromOffset(200, 25),
-    UDim2.fromOffset(15, 165), TextColor)
+createLabel(ESPTab, "Frame Color", UDim2.new(0, 200, 0, 25), UDim2.new(0, 15, 0, 150), Theme.TextColor)
 
 local colors = {
     {"Green", Color3.fromRGB(0, 255, 110)},
@@ -306,126 +259,90 @@ local colors = {
 
 local colorIndex = 1
 
-local colorButton = button(ESP, "Green",
-    UDim2.fromOffset(120, 32),
-    UDim2.fromOffset(15, 200), function()
-        colorIndex = colorIndex % #colors + 1
-        colorButton.Text = colors[colorIndex][1]
-        espColor = colors[colorIndex][2]
-        colorButton.BackgroundColor3 = espColor
-        colorButton.TextColor3 = Background
-    end)
+local colorBtn = createButton(ESPTab, "Green", UDim2.new(0, 120, 0, 30), UDim2.new(0, 15, 0, 180), function()
+    colorIndex = colorIndex % #colors + 1
+    colorBtn.Text = colors[colorIndex][1]
+    espColor = colors[colorIndex][2]
+    colorBtn.BackgroundColor3 = espColor
+    colorBtn.TextColor3 = Theme.Background
+end)
+colorBtn.BackgroundColor3 = espColor
+colorBtn.TextColor3 = Theme.Background
 
-colorButton.BackgroundColor3 = espColor
-colorButton.TextColor3 = Background
--- SETTINGS STATUS
-local status = label(Settings, "Interface: Active",
-    UDim2.fromOffset(300, 25),
-    UDim2.fromOffset(10, 95), Green)
+-- ==========================================
+-- 7. LOOP DEL ESP (DIBUJADO)
+-- ==========================================
+RunService.RenderStepped:Connect(function()
+    local espActive = Toggles["ESP Frame"]
+    local nameActive = Toggles["ESP Name"]
 
--- NAVIGATION
-local menu = {
-    "Home",
-    "Hitbox",
-    "ESP",
-    "Whitelist"
-}
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local character = player.Character
+            
+            if not espActive and not nameActive then
+                if espDrawings[player] then
+                    espDrawings[player].box.Visible = false
+                    espDrawings[player].name.Visible = false
+                end
+                continue
+            end
 
-local function showPage(name)
-    for pageName, page in pairs(Pages) do
-        page.Visible = pageName == name
-    end
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            local humanoid = character:FindFirstChild("Humanoid")
 
-    if name == "Whitelist" then
-        refreshPlayers()
-    end
-end
+            if rootPart and humanoid and humanoid.Health > 0 then
+                if not espDrawings[player] then
+                    local box = Drawing.new("Square")
+                    box.Thickness = 1
+                    box.Filled = false
+                    
+                    local name = Drawing.new("Text")
+                    name.Size = 14
+                    name.Center = true
+                    name.Outline = true
+                    
+                    espDrawings[player] = {box = box, name = name}
+                end
 
-for i, name in ipairs(menu) do
-    button(
-        Sidebar,
-        name,
-        UDim2.fromOffset(135, 35),
-        UDim2.fromOffset(10, 80 + (i - 1) * 43),
-        function()
-            showPage(name)
+                local box = espDrawings[player].box
+                local name = espDrawings[player].name
+                local vector, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+                
+                if onScreen then
+                    if espActive then
+                        local distance = (Camera.CFrame.Position - rootPart.Position).Magnitude
+                        local size = (rootPart.Size.Y * 2) / distance * 800 
+
+                        box.Visible = true
+                        box.Size = Vector2.new(size / 1.5, size)
+                        box.Position = Vector2.new(vector.X - (box.Size.X / 2), vector.Y - (box.Size.Y / 2))
+                        box.Color = espColor 
+                    else
+                        box.Visible = false
+                    end
+
+                    if nameActive then
+                        name.Visible = true
+                        name.Text = player.Name
+                        name.Position = Vector2.new(vector.X, vector.Y - 20)
+                        name.Color = espColor
+                    else
+                        name.Visible = false
+                    end
+                else
+                    box.Visible = false
+                    name.Visible = false
+                end
+            end
         end
-    )
-end
-
--- WINDOW CONTROLS
-local Controls = Instance.new("Frame")
-Controls.Size = UDim2.fromOffset(105, 30)
-Controls.Position = UDim2.new(1, -115, 0, 8)
-Controls.BackgroundTransparency = 1
-Controls.Parent = Main
-
-local function control(symbol, x, color, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.fromOffset(30, 27)
-    btn.Position = UDim2.fromOffset(x, 0)
-    btn.BackgroundColor3 = Panel
-    btn.BorderSizePixel = 0
-    btn.Text = symbol
-    btn.TextColor3 = color
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
-    btn.Parent = Controls
-    corner(btn, 6)
-    btn.MouseButton1Click:Connect(callback)
-end
-
--- REOPEN BUTTON
-local Reopen = button(
-    Gui,
-    "GABRIELHUB",
-    UDim2.fromOffset(145, 38),
-    UDim2.new(0, 15, 0.5, 0),
-    function()
-        Main.Visible = true
-        Reopen.Visible = false
-    end
-)
-Reopen.Visible = false
-Reopen.BackgroundColor3 = Background
-Reopen.TextColor3 = Green
-
--- MINIMIZE
-control("—", 0, TextColor, function()
-    Main.Visible = false
-    Reopen.Visible = true
-end)
-
--- MAXIMIZE
-local maximized = false
-local normalSize = UDim2.fromOffset(650, 430)
-local normalPosition = UDim2.new(0.5, -325, 0.5, -215)
-
-control("□", 36, Green, function()
-    maximized = not maximized
-
-    if maximized then
-        Main.Size = UDim2.new(1, -30, 1, -30)
-        Main.Position = UDim2.fromOffset(15, 15)
-    else
-        Main.Size = normalSize
-        Main.Position = normalPosition
     end
 end)
-
--- CLOSE
-control("X", 72, Color3.fromRGB(255, 75, 75), function()
-    Gui:Destroy()
-end)
-
--- PLAYER EVENTS
-Players.PlayerAdded:Connect(refreshPlayers)
 
 Players.PlayerRemoving:Connect(function(player)
-    selected[player.UserId] = nil
-    refreshPlayers()
+    if espDrawings[player] then
+        espDrawings[player].box:Remove()
+        espDrawings[player].name:Remove()
+        espDrawings[player] = nil
+    end
 end)
-
--- START
-showPage("Home")
-print("GabrielHub V2 loaded")
