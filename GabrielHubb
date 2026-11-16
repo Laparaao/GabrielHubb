@@ -1,411 +1,555 @@
--- ==========================================
--- GABRIEL XITER - UI NEXUS (CON FUNCIONES)
--- ==========================================
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+--[[
+    DEOBFBYSZK - Murderers VS Sheriffs
+    MADE BY SZK
+    Discord: https://discord.gg/f4JfyAFCN
+]]
 
--- Limpiar UI vieja
-for _, gui in pairs(PlayerGui:GetChildren()) do
-    if gui.Name == "GabrielXiter" or gui.Name == "NexusClone" then gui:Destroy() end
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+if not WindUI then
+    warn("[DEOBFBYSZK] WindUI no cargo")
+    return
 end
 
-local Colors = {
-    Background = Color3.fromRGB(22, 22, 22),
-    Sidebar = Color3.fromRGB(28, 28, 28),
-    Panel = Color3.fromRGB(32, 32, 32),
-    Input = Color3.fromRGB(18, 18, 18),
-    Text = Color3.fromRGB(220, 220, 220),
-    TextDim = Color3.fromRGB(120, 120, 120),
-    Accent = Color3.fromRGB(255, 80, 150), -- Rosa Synergy
-    Green = Color3.fromRGB(0, 255, 110)
+local setclipboard = setclipboard or function() end
+local getgenv = getgenv or function() return _G end
+
+local DISCORD_INVITE = "https://discord.gg/f4JfyAFCN"
+local UNLOAD_KEY = "__DEOBFBYSZK_UNLOAD"
+local IS_UNLOADING = false
+
+pcall(function()
+    local env = getgenv()
+    if type(env[UNLOAD_KEY]) == "function" then
+        env[UNLOAD_KEY]()
+    end
+end)
+
+local Players           = game:GetService("Players")
+local RunService        = game:GetService("RunService")
+local UserInputService  = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting          = game:GetService("Lighting")
+local LocalPlayer       = Players.LocalPlayer
+
+local function IsMobile()
+    local ok, platform = pcall(function() return UserInputService:GetPlatform() end)
+    if ok and (platform == Enum.Platform.Android or platform == Enum.Platform.IOS) then
+        return true
+    end
+    return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+end
+local IS_MOBILE = IsMobile()
+
+local function GetCursorPosition()
+    if IS_MOBILE then
+        local cam = workspace.CurrentCamera
+        return cam and (cam.ViewportSize / 2) or Vector2.zero
+    end
+    return UserInputService:GetMouseLocation()
+end
+
+local ALLY_LOOKUP = { [8343463328] = true }
+local IsAlly = {}
+function IsAlly:check(player)
+    if not player then return false end
+    return ALLY_LOOKUP[player.UserId] == true
+end
+
+local ConnectionBucket = {}
+ConnectionBucket.__index = ConnectionBucket
+function ConnectionBucket.new() return setmetatable({ _conns = {} }, ConnectionBucket) end
+function ConnectionBucket:add(obj) self._conns[#self._conns + 1] = obj; return obj end
+function ConnectionBucket:clear()
+    for i = #self._conns, 1, -1 do
+        local obj = self._conns[i]
+        self._conns[i] = nil
+        local t = typeof(obj)
+        if t == "RBXScriptConnection" then pcall(function() obj:Disconnect() end)
+        elseif t == "Instance" then pcall(function() obj:Destroy() end)
+        elseif t == "function" then pcall(obj) end
+    end
+end
+
+local Config = {
+    Notifications = { Enabled = true },
+    ESP = { Enabled = false, ShowName = false, Lines = false, Color = Color3.fromRGB(0,255,0), LinesColor = Color3.fromRGB(0,255,0) },
+    Hitbox = { Enabled = false, Size = 4, Show = true, Opacity = 5.5, Color = Color3.fromRGB(255,0,0) },
+    Bubbles = { SilentAim = false, KillAll = false, Invisible = false, Desync = false, AutoShoot = false },
+    PlayerCheats = { JumpPowerEnabled = false, JumpPower = 25, InfiniteJump = false, SpeedEnabled = false, Speed = 24 },
+    AutoTeleport = { Main = false, Alt = false, DuelType = "1v1", PlatformRow = "Right Platforms", BreakStreak = false, BreakStreakTarget = 1, LowerKD = false, KDTargetKills = 4, EventFarm = false },
+    Bannable = {
+        KillAll = false, Invisible = false, Desync = false,
+        AimFollow = false, AimFollowFirearmOnly = true, AimFollowKnifeOnly = false, AimFollowRaycast = true,
+        BodyPartsEnabled = true,
+        BodyParts = {
+            Head=true,LeftUpperArm=true,LeftLowerArm=true,LeftHand=true,
+            RightUpperArm=true,RightLowerArm=true,RightHand=true,
+            UpperTorso=true,LowerTorso=true,LeftUpperLeg=true,LeftLowerLeg=true,
+            LeftFoot=true,RightUpperLeg=true,RightLowerLeg=true,RightFoot=true,
+        },
+        Triggerbot=false, SilentAim=false, AutoShoot=false, Macro=false,
+        FOVEnabled=false, FOVVisible=true, FOVRadius=200, HitChance=100,
+    },
+    Boxes = { Selected = "Knife Box #1", Price = 500, AutoBuy = false },
+    FloatingFloor = { Enabled = false, HideMap = false, Height = 0 },
+    Emotes = { AutoExecute = false },
+    Keybinds = { ToggleUI = "RightControl" },
 }
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GabrielXiter"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 99999
-ScreenGui.Parent = PlayerGui
-
--- SISTEMA DE CLICKS (BYPASS ANTI-CHEAT)
-local buttons = {}
-local function registerButton(btn, callback)
-    table.insert(buttons, {btn = btn, callback = callback})
+local function ToColor3(value, default)
+    if typeof(value) == "Color3" then return value end
+    if type(value) == "table" then
+        local r = value.R or value.r or value[1]
+        local g = value.G or value.g or value[2]
+        local b = value.B or value.b or value[3]
+        if type(r) == "number" and type(g) == "number" and type(b) == "number" then
+            if r > 1 or g > 1 or b > 1 then
+                return Color3.fromRGB(math.clamp(r,0,255), math.clamp(g,0,255), math.clamp(b,0,255))
+            end
+            return Color3.new(r, g, b)
+        end
+    end
+    return default
 end
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        local mousePos = UserInputService:GetMouseLocation()
-        for _, data in ipairs(buttons) do
-            local btn = data.btn
-            if btn and btn.Parent and btn.Visible then
-                local pos = btn.AbsolutePosition
-                local size = btn.AbsoluteSize
-                if mousePos.X >= pos.X and mousePos.X <= pos.X + size.X and
-                   mousePos.Y >= pos.Y and mousePos.Y <= pos.Y + size.Y then
-                    task.spawn(data.callback)
-                    break
-                end
+local IS_LOADING_CONFIG = false
+local function SetToggleValue(t, v)
+    if v == nil or not t then return end
+    IS_LOADING_CONFIG = true
+    pcall(function() t:Set(v) end)
+    IS_LOADING_CONFIG = false
+end
+
+local function GetHRP(player)
+    local char = player and player.Character
+    if not char then return nil end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    return (hrp and hrp:IsA("BasePart")) and hrp or nil
+end
+
+local function GetHumanoid(player)
+    local char = player and player.Character
+    return char and char:FindFirstChildOfClass("Humanoid") or nil
+end
+
+local function HasGameAttribute(player)
+    if not player then return false end
+    local v = player:GetAttribute("Game")
+    return typeof(v) == "string" and v ~= ""
+end
+
+local function HasMapAttribute(player)
+    if not HasGameAttribute(player) then return false end
+    local v = player:GetAttribute("Map")
+    return typeof(v) == "string" and v ~= ""
+end
+
+local function WaitForChildSafe(parent, name, timeout)
+    if not parent then return nil end
+    timeout = timeout or 2
+    local ok, child = pcall(function() return parent:WaitForChild(name, timeout) end)
+    if ok then return child end
+    return nil
+end
+
+local EnemyChecker = {}
+EnemyChecker.__index = EnemyChecker
+function EnemyChecker:IsEnemy(player)
+    if player == LocalPlayer then return false end
+    if not HasMapAttribute(LocalPlayer) or not HasMapAttribute(player) then return false end
+    if LocalPlayer:GetAttribute("Game") ~= player:GetAttribute("Game") then return false end
+    if LocalPlayer:GetAttribute("Map")  ~= player:GetAttribute("Map")  then return false end
+    local myTeam, hisTeam = LocalPlayer:GetAttribute("Team"), player:GetAttribute("Team")
+    if typeof(myTeam) ~= "string" or myTeam == "" then return false end
+    if typeof(hisTeam) ~= "string" or hisTeam == "" then return false end
+    return myTeam ~= hisTeam
+end
+local EnemyCheckerInstance = setmetatable({}, EnemyChecker)
+
+local function IsValidEnemy(player)
+    if not EnemyCheckerInstance:IsEnemy(player) then return false end
+    if IsAlly:check(player) then return false end
+    return true
+end
+
+local function IsAlive(player)
+    local char = player and player.Character
+    if not char then return false end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    return hum and hum.Health > 0
+end
+
+local BODY_PART_NAMES = {
+    "Head","LeftLowerArm","LeftHand","LeftLowerLeg","LeftFoot",
+    "LeftUpperArm","LeftUpperLeg","LowerTorso","RightLowerArm","RightHand",
+    "RightLowerLeg","RightFoot","RightUpperArm","RightUpperLeg","UpperTorso",
+}
+local BODY_PART_LOOKUP = {}
+for _, n in ipairs(BODY_PART_NAMES) do BODY_PART_LOOKUP[n] = true end
+
+local BODY_WEIGHTS = {
+    UpperTorso=34,LowerTorso=22,HumanoidRootPart=22,Head=14,
+    LeftUpperArm=5,RightUpperArm=5,LeftUpperLeg=5,RightUpperLeg=5,
+    LeftLowerArm=3,RightLowerArm=3,LeftLowerLeg=3,RightLowerLeg=3,
+    LeftHand=2,RightHand=2,LeftFoot=2,RightFoot=2,
+}
+
+local function SanitizeBodyPartsConfig()
+    if type(Config.Bannable.BodyParts) ~= "table" then Config.Bannable.BodyParts = {} end
+    for name, value in pairs(Config.Bannable.BodyParts) do
+        if not BODY_PART_LOOKUP[name] then Config.Bannable.BodyParts[name] = nil
+        elseif type(value) ~= "boolean" then Config.Bannable.BodyParts[name] = value == true end
+    end
+    for _, name in ipairs(BODY_PART_NAMES) do
+        if Config.Bannable.BodyParts[name] == nil then Config.Bannable.BodyParts[name] = true end
+    end
+end
+
+local function GetEnabledBodyPartNames()
+    SanitizeBodyPartsConfig()
+    if not Config.Bannable.BodyPartsEnabled then
+        return { "Head", "UpperTorso", "HumanoidRootPart" }
+    end
+    local out = {}
+    for _, name in ipairs(BODY_PART_NAMES) do
+        if Config.Bannable.BodyParts[name] == true then out[#out+1] = name end
+    end
+    if #out == 0 then return { "UpperTorso", "HumanoidRootPart" } end
+    return out
+end
+
+local function GetAimParts(player, names)
+    local char = player and player.Character
+    if not char then return nil end
+    names = names or GetEnabledBodyPartNames()
+    local out = {}
+    for _, name in ipairs(names) do
+        local part = char:FindFirstChild(name)
+        if part and part:IsA("BasePart") then out[#out+1] = part end
+    end
+    return #out > 0 and out or nil
+end
+
+local function SelectAimPart(player, names)
+    local parts = GetAimParts(player, names)
+    if not parts then return nil end
+    local total = 0
+    local weights = {}
+    for _, part in ipairs(parts) do
+        local w = BODY_WEIGHTS[part.Name] or 1
+        weights[#weights+1] = w
+        total = total + w
+    end
+    if total <= 0 then return parts[1] end
+    local roll = math.random() * total
+    local acc = 0
+    for i, part in ipairs(parts) do
+        acc = acc + weights[i]
+        if roll <= acc then return part end
+    end
+    return parts[1]
+end
+
+local function GetBodyPartsForAim() return GetEnabledBodyPartNames() end
+
+local function HitChancePasses()
+    local c = math.clamp(tonumber(Config.Bannable.HitChance) or 100, 0, 100)
+    if c >= 100 then return true end
+    if c <= 0 then return false end
+    return (math.random() * 100) <= c
+end
+
+local function IsFirearm(tool)
+    if not (tool and tool:IsA("Tool")) then return false end
+    local fire = tool:FindFirstChild("fire")
+    if fire and fire:IsA("RemoteEvent") then return true end
+    local beam = tool:FindFirstChild("showBeam")
+    if beam and beam:IsA("RemoteEvent") then return true end
+    return false
+end
+
+local function IsKnife(tool)
+    if not (tool and tool:IsA("Tool")) then return false end
+    local kill = tool:FindFirstChild("kill")
+    local name = tostring(tool.Name or ""):lower()
+    return (kill and kill:IsA("RemoteEvent")) or name:find("knife", 1, true) ~= nil
+end
+
+local function FindToolByPredicate(char, predicate)
+    if not char then return nil end
+    for _, child in ipairs(char:GetChildren()) do
+        if predicate(child) then return child end
+    end
+    return nil
+end
+
+local function FindEquippedKnife()
+    return FindToolByPredicate(LocalPlayer.Character, IsKnife)
+end
+
+local function GetFirearmTool()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local equipped = FindToolByPredicate(char, IsFirearm)
+    if equipped then return equipped end
+    local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+    if backpack then
+        local candidate = FindToolByPredicate(backpack, IsFirearm)
+        if candidate then
+            local hum = GetHumanoid(LocalPlayer)
+            if hum then
+                pcall(function() hum:EquipTool(candidate) end)
+                task.wait(0.05)
+                if candidate.Parent == char then return candidate end
             end
         end
     end
+    return nil
+end
+
+local SharedRaycast = { _params = nil, _lastFilter = false }
+local function GetSharedRaycastParams(ignoreChar)
+    if not SharedRaycast._params or SharedRaycast._lastFilter ~= ignoreChar then
+        local p = SharedRaycast._params
+        if not p then
+            p = RaycastParams.new()
+            p.FilterType = Enum.RaycastFilterType.Exclude
+            p.IgnoreWater = true
+            SharedRaycast._params = p
+        end
+        p.FilterDescendantsInstances = ignoreChar and { ignoreChar } or {}
+        SharedRaycast._lastFilter = ignoreChar
+    end
+    return SharedRaycast._params
+end
+
+local function HasLineOfSight(target, targetPart)
+    local myChar = LocalPlayer.Character
+    local myHRP  = GetHRP(LocalPlayer)
+    if not (myChar and myHRP and target and target.Character and targetPart and targetPart:IsA("BasePart")) then
+        return false
+    end
+    local dir = targetPart.Position - myHRP.Position
+    if dir.Magnitude <= 0 then return false end
+    local params = GetSharedRaycastParams(myChar)
+    local hit = workspace:Raycast(myHRP.Position, dir, params)
+    return (not hit) or (hit.Instance and hit.Instance:IsDescendantOf(target.Character))
+end
+
+local function HasClearLOS(targetPart, origin, params)
+    local size = targetPart.Size
+    local offsets = {
+        Vector3.zero,
+        Vector3.new(size.X / 2.1, 0, 0),
+        Vector3.new(-size.X / 2.1, 0, 0),
+        Vector3.new(0, size.Y / 2.1, 0),
+        Vector3.new(0, -size.Y / 2.1, 0),
+    }
+    for _, off in ipairs(offsets) do
+        local targetPos = targetPart.CFrame * off
+        if not workspace:Raycast(origin, targetPos - origin, params) then
+            return true
+        end
+    end
+    return false
+end
+
+local function GetGuiParent()
+    if type(gethui) == "function" then
+        local ok, hui = pcall(gethui)
+        if ok and hui then return hui end
+    end
+    local ok, cg = pcall(function() return game:GetService("CoreGui") end)
+    if ok and cg then return cg end
+    return LocalPlayer:FindFirstChild("PlayerGui")
+end
+
+local function IsMatchTimerVisible()
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    local main = (pg and pg:FindFirstChild("Main")) or pg
+    local frame = main and main:FindFirstChild("MainGameFrame")
+    local score = frame and frame:FindFirstChild("IngameScore")
+    local timer = score and score:FindFirstChild("Timer")
+    if not timer then return false end
+    return tostring(timer.Text or ""):match("^%s*%d+:%d%d%s*$") ~= nil
+end
+
+--=================================================================
+-- VENTANA
+--=================================================================
+local WindWindow = WindUI:CreateWindow({
+    Title = "DEOBFBYSZK",
+    Icon = "swords",
+    Author = "MADE BY SZK",
+    Folder = "DEOBFBYSZK/Configs",
+    Theme = "Dark",
+    NewElements = true,
+    OpenButton = {
+        Title = "DEOBFBYSZK",
+        Icon = "monitor",
+        CornerRadius = UDim.new(0, 16),
+        StrokeThickness = 2,
+        Color = ColorSequence.new(Color3.fromHex("FF0F7B"), Color3.fromHex("F89B29")),
+        OnlyMobile = false,
+        Enabled = true,
+        Draggable = true,
+    },
+})
+
+pcall(function()
+    WindWindow:Tag({
+        Title = "v1.0.0",
+        Icon = "github",
+        Color = Color3.fromHex("#4FC3F7"),
+        Radius = 13,
+    })
 end)
 
--- Ventana Principal
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.fromOffset(750, 450)
-MainFrame.Position = UDim2.new(0.5, -375, 0.5, -225)
-MainFrame.BackgroundColor3 = Colors.Background
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
-local UICorner = Instance.new("UICorner") UICorner.CornerRadius = UDim.new(0, 8) UICorner.Parent = MainFrame
+pcall(function()
+    WindWindow:EditOpenButton({
+        Title = "DEOBFBYSZK",
+        Icon = "",
+        CornerRadius = UDim.new(0, 16),
+        StrokeThickness = 2,
+        Color = ColorSequence.new(Color3.fromHex("FF0F7B"), Color3.fromHex("F89B29")),
+        OnlyMobile = true,
+        Enabled = true,
+        Draggable = true,
+    })
+end)
 
--- Barra Superior
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 35)
-TopBar.BackgroundColor3 = Colors.Background
-TopBar.BackgroundTransparency = 0.5
-TopBar.Parent = MainFrame
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0, 200, 1, 0)
-Title.Position = UDim2.fromOffset(15, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "||||| Gabriel Xiter"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
-Title.TextColor3 = Colors.Accent
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TopBar
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.fromOffset(30, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 2)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Text = "X"
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 14
-CloseBtn.TextColor3 = Colors.Text
-CloseBtn.Parent = TopBar
-registerButton(CloseBtn, function() ScreenGui:Destroy() end)
-
--- Barra Lateral
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0, 180, 1, -35)
-Sidebar.Position = UDim2.new(0, 0, 0, 35)
-Sidebar.BackgroundColor3 = Colors.Sidebar
-Sidebar.Parent = MainFrame
-local SidebarCorner = Instance.new("UICorner") SidebarCorner.CornerRadius = UDim.new(0, 8) SidebarCorner.Parent = Sidebar
-
-local TabContainer = Instance.new("Frame")
-TabContainer.Size = UDim2.new(1, -10, 1, -10)
-TabContainer.Position = UDim2.fromOffset(5, 5)
-TabContainer.BackgroundTransparency = 1
-TabContainer.Parent = Sidebar
-
-local function createCategory(text, yPos)
-    local cat = Instance.new("TextLabel")
-    cat.Size = UDim2.new(1, -20, 0, 20)
-    cat.Position = UDim2.fromOffset(15, yPos)
-    cat.BackgroundTransparency = 1
-    cat.Text = text
-    cat.Font = Enum.Font.GothamBold
-    cat.TextSize = 11
-    cat.TextColor3 = Colors.TextDim
-    cat.TextXAlignment = Enum.TextXAlignment.Left
-    cat.Parent = TabContainer
-end
-
-local function createTab(text, yPos)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -20, 0, 30)
-    btn.Position = UDim2.fromOffset(10, yPos)
-    btn.BackgroundColor3 = Colors.Sidebar
-    btn.BackgroundTransparency = 1
-    btn.Text = "   " .. text
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 13
-    btn.TextColor3 = Colors.Text
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.Parent = TabContainer
-    local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, 6) corner.Parent = btn
-    return btn
-end
-
-createCategory("COMBAT", 10)
-local tabAim = createTab("Aim-Assist", 35)
-local tabSilent = createTab("Silent-Aim", 70)
-local tabTrigger = createTab("Trigger-Bot", 105)
-
-createCategory("VISUAL", 145)
-local tabPlayers = createTab("Players (ESP)", 170)
-local tabHitbox = createTab("Hitbox", 205)
-
--- PANELES (Páginas)
-local CenterPanel = Instance.new("Frame")
-CenterPanel.Size = UDim2.new(0, 350, 1, -45)
-CenterPanel.Position = UDim2.new(0, 190, 0, 40)
-CenterPanel.BackgroundColor3 = Colors.Panel
-CenterPanel.Parent = MainFrame
-local CenterCorner = Instance.new("UICorner") CenterCorner.CornerRadius = UDim.new(0, 8) CenterCorner.Parent = CenterPanel
-
--- Función para crear páginas
-local function createPage(name)
-    local page = Instance.new("Frame")
-    page.Name = name
-    page.Size = UDim2.new(1, 0, 1, 0)
-    page.BackgroundTransparency = 1
-    page.Visible = false
-    page.Parent = CenterPanel
-    return page
-end
-
-local pageConfig = createPage("ConfigPage")
-local pagePlayers = createPage("PlayersPage")
-local pageHitbox = createPage("HitboxPage")
-
-local function switchPage(pageToShow)
-    for _, child in pairs(CenterPanel:GetChildren()) do
-        if child:IsA("Frame") then child.Visible = false end
+local CONFIG_MANAGER = nil
+pcall(function()
+    if WindWindow.ConfigManager then
+        CONFIG_MANAGER = WindWindow.ConfigManager:CreateConfig("deobfbyszk_main")
     end
-    pageToShow.Visible = true
+end)
+
+local SKIP_SAVE = true
+local function SaveConfig()
+    if not IS_LOADING_CONFIG and not SKIP_SAVE and CONFIG_MANAGER then
+        pcall(function() CONFIG_MANAGER:Save() end)
+    end
 end
 
-registerButton(tabPlayers, function() switchPage(pagePlayers) end)
-registerButton(tabHitbox, function() switchPage(pageHitbox) end)
+local AUTO_SAVE_ACC = 0
+local CONFIG_AUTOSAVE_CONN = RunService.Heartbeat:Connect(function(dt)
+    AUTO_SAVE_ACC = AUTO_SAVE_ACC + dt
+    if AUTO_SAVE_ACC < 5 then return end
+    AUTO_SAVE_ACC = 0
+    SaveConfig()
+end)
 
--- ==========================================
--- PÁGINA: ESP PLAYERS
--- ==========================================
-local TitlePlayers = Instance.new("TextLabel")
-TitlePlayers.Size = UDim2.new(1, -20, 0, 30)
-TitlePlayers.Position = UDim2.fromOffset(10, 10)
-TitlePlayers.BackgroundTransparency = 1
-TitlePlayers.Text = "PLAYER MODS (ESP)"
-TitlePlayers.Font = Enum.Font.GothamBold
-TitlePlayers.TextSize = 11
-TitlePlayers.TextColor3 = Colors.TextDim
-TitlePlayers.TextXAlignment = Enum.TextXAlignment.Left
-TitlePlayers.Parent = pagePlayers
+local function Notify(title, content, icon, duration)
+    if Config.Notifications.Enabled then
+        pcall(function()
+            WindUI:Notify({
+                Title = title,
+                Content = content,
+                Duration = duration or 3,
+                Icon = icon or "info",
+            })
+        end)
+    end
+end
 
-local espEnabled = false
-local espObjects = {}
+--=================================================================
+-- HANDLERS
+--=================================================================
 
-local function createToggle(parent, text, yPos, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -20, 0, 30)
-    btn.Position = UDim2.fromOffset(10, yPos)
-    btn.BackgroundColor3 = Colors.Input
-    btn.Text = text .. "  •  OFF"
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 12
-    btn.TextColor3 = Colors.Text
-    btn.Parent = parent
-    local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, 4) corner.Parent = btn
-    
-    local isOn = false
-    registerButton(btn, function()
-        isOn = not isOn
-        btn.Text = text .. "  •  " .. (isOn and "ON" or "OFF")
-        btn.TextColor3 = isOn and Colors.Green or Colors.Text
-        callback(isOn)
+local JumpPowerHandler = {}
+JumpPowerHandler.__index = JumpPowerHandler
+function JumpPowerHandler.new()
+    return setmetatable({ _running=false, _conns=ConnectionBucket.new(), _humanoid=nil, _original=nil }, JumpPowerHandler)
+end
+function JumpPowerHandler:InGame() return HasGameAttribute(LocalPlayer) end
+function JumpPowerHandler:CacheOriginal(humanoid)
+    if not humanoid or humanoid == self._humanoid then return end
+    self._humanoid = humanoid
+    self._original = { UseJumpPower=humanoid.UseJumpPower, JumpPower=humanoid.JumpPower, JumpHeight=humanoid.JumpHeight }
+end
+function JumpPowerHandler:GetHumanoid()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then self:CacheOriginal(hum) end
+    return hum
+end
+function JumpPowerHandler:RestoreOriginal(humanoid)
+    humanoid = humanoid or self:GetHumanoid()
+    if not humanoid or not self._original then return end
+    pcall(function()
+        humanoid.UseJumpPower = self._original.UseJumpPower
+        if self._original.UseJumpPower then humanoid.JumpPower = self._original.JumpPower
+        else humanoid.JumpHeight = self._original.JumpHeight end
     end)
-    return btn
+end
+function JumpPowerHandler:ApplyJumpPower(humanoid)
+    humanoid = humanoid or self:GetHumanoid()
+    if not humanoid then return end
+    self:CacheOriginal(humanoid)
+    if Config.PlayerCheats.JumpPowerEnabled and self:InGame() then
+        local p = math.max(0, tonumber(Config.PlayerCheats.JumpPower) or 25)
+        pcall(function()
+            humanoid.UseJumpPower = true
+            humanoid.JumpPower = p * 2
+        end)
+    else
+        self:RestoreOriginal(humanoid)
+    end
+end
+function JumpPowerHandler:Start()
+    if self._running then return end
+    self._running = true
+    self._conns:add(LocalPlayer:GetAttributeChangedSignal("Game"):Connect(function()
+        if self._running then self:ApplyJumpPower() end
+    end))
+    self._conns:add(LocalPlayer.CharacterAdded:Connect(function(char)
+        task.defer(function()
+            local hum = WaitForChildSafe(char, "Humanoid", 5)
+            if hum then self._humanoid = nil; self:ApplyJumpPower(hum) end
+        end)
+    end))
+    self._conns:add(UserInputService.JumpRequest:Connect(function()
+        if not Config.PlayerCheats.InfiniteJump then return end
+        if not self:InGame() then return end
+        local hum = self:GetHumanoid()
+        if hum then pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end) end
+    end))
+end
+function JumpPowerHandler:Stop()
+    if not self._running then self:RestoreOriginal(); return end
+    self._running = false
+    self._conns:clear()
+    self:RestoreOriginal()
+end
+function JumpPowerHandler:Refresh()
+    if Config.PlayerCheats.JumpPowerEnabled or Config.PlayerCheats.InfiniteJump then
+        self:Start(); self:ApplyJumpPower()
+    else
+        self:Stop()
+    end
 end
 
-createToggle(pagePlayers, "ESP Box (Highlight)", 40, function(state) espEnabled = state end)
-
--- Lógica ESP
-RunService.RenderStepped:Connect(function()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            if espEnabled then
-                if not espObjects[player] then
-                    local highlight = Instance.new("Highlight")
-                    highlight.Adornee = player.Character
-                    highlight.FillColor = Colors.Accent
-                    highlight.OutlineColor = Colors.Accent
-                    highlight.FillTransparency = 0.5
-                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                    highlight.Parent = ScreenGui
-                    espObjects[player] = highlight
-                end
-            else
-                if espObjects[player] then
-                    espObjects[player]:Destroy()
-                    espObjects[player] = nil
-                end
-            end
-        end
-    end
-end)
-
--- ==========================================
--- PÁGINA: HITBOX
--- ==========================================
-local TitleHitbox = Instance.new("TextLabel")
-TitleHitbox.Size = UDim2.new(1, -20, 0, 30)
-TitleHitbox.Position = UDim2.fromOffset(10, 10)
-TitleHitbox.BackgroundTransparency = 1
-TitleHitbox.Text = "HITBOX SETTINGS"
-TitleHitbox.Font = Enum.Font.GothamBold
-TitleHitbox.TextSize = 11
-TitleHitbox.TextColor3 = Colors.TextDim
-TitleHitbox.TextXAlignment = Enum.TextXAlignment.Left
-TitleHitbox.Parent = pageHitbox
-
-local u6, u7 = false, false
-local n1 = 5
-local t1 = {}
-
-createToggle(pageHitbox, "Hitbox Visible", 40, function(state) u6 = state; if state then u7 = false end end)
-createToggle(pageHitbox, "Hitbox Invisible", 80, function(state) u7 = state; if state then u6 = false end end)
-
-local sizeLabel = Instance.new("TextLabel")
-sizeLabel.Size = UDim2.new(1, -20, 0, 20)
-sizeLabel.Position = UDim2.fromOffset(10, 120)
-sizeLabel.BackgroundTransparency = 1
-sizeLabel.Text = "Tamaño Hitbox: " .. n1
-sizeLabel.Font = Enum.Font.Gotham
-sizeLabel.TextSize = 12
-sizeLabel.TextColor3 = Colors.TextDim
-sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
-sizeLabel.Parent = pageHitbox
-
-local btnMinus = Instance.new("TextButton")
-btnMinus.Size = UDim2.fromOffset(50, 25)
-btnMinus.Position = UDim2.fromOffset(10, 145)
-btnMinus.BackgroundColor3 = Colors.Input
-btnMinus.Text = "-"
-btnMinus.TextColor3 = Colors.Text
-btnMinus.Parent = pageHitbox
-local c1 = Instance.new("UICorner") c1.CornerRadius = UDim.new(0, 4) c1.Parent = btnMinus
-registerButton(btnMinus, function()
-    n1 = math.max(1, n1 - 1)
-    sizeLabel.Text = "Tamaño Hitbox: " .. n1
-end)
-
-local btnPlus = Instance.new("TextButton")
-btnPlus.Size = UDim2.fromOffset(50, 25)
-btnPlus.Position = UDim2.fromOffset(70, 145)
-btnPlus.BackgroundColor3 = Colors.Input
-btnPlus.Text = "+"
-btnPlus.TextColor3 = Colors.Text
-btnPlus.Parent = pageHitbox
-local c2 = Instance.new("UICorner") c2.CornerRadius = UDim.new(0, 4) c2.Parent = btnPlus
-registerButton(btnPlus, function()
-    n1 = math.min(20, n1 + 1)
-    sizeLabel.Text = "Tamaño Hitbox: " .. n1
-end)
-
--- Lógica Hitbox
-RunService.Heartbeat:Connect(function()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-            local humanoid = player.Character:FindFirstChild("Humanoid")
-            if hrp and humanoid and humanoid.Health > 0 then
-                if u6 or u7 then
-                    if not t1[player] then
-                        local box = Instance.new("Part")
-                        box.Name = "HitboxPart"
-                        box.Size = Vector3.new(n1, n1, n1)
-                        box.Transparency = u7 and 1 or 0.5
-                        box.Color = Colors.Accent
-                        box.Material = Enum.Material.Neon
-                        box.CanCollide = false
-                        box.CanTouch = true
-                        box.CanQuery = true
-                        box.Massless = true
-                        box.Anchored = true 
-                        box.Parent = workspace
-                        
-                        local highlight = Instance.new("Highlight")
-                        highlight.Adornee = box
-                        highlight.FillColor = Colors.Accent
-                        highlight.OutlineColor = Colors.Accent
-                        highlight.FillTransparency = u7 and 1 or 0.8
-                        highlight.OutlineTransparency = u7 and 1 or 0
-                        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                        highlight.Parent = box
-                        
-                        t1[player] = {Box = box, Highlight = highlight}
-                    end
-                    
-                    local data = t1[player]
-                    if data and data.Box and data.Box.Parent then
-                        data.Box.Size = Vector3.new(n1, n1, n1)
-                        data.Box.CFrame = hrp.CFrame 
-                        data.Box.Transparency = u7 and 1 or 0.5
-                        data.Highlight.FillTransparency = u7 and 1 or 0.8
-                        data.Highlight.OutlineTransparency = u7 and 1 or 0
-                    end
-                else
-                    if t1[player] then
-                        if t1[player].Box then t1[player].Box:Destroy() end
-                        t1[player] = nil
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- Panel Derecho (Estético para que se vea igual a la foto)
-local RightPanel = Instance.new("Frame")
-RightPanel.Size = UDim2.new(0, 190, 1, -45)
-RightPanel.Position = UDim2.new(0, 550, 0, 40)
-RightPanel.BackgroundColor3 = Colors.Panel
-RightPanel.Parent = MainFrame
-local RightCorner = Instance.new("UICorner") RightCorner.CornerRadius = UDim.new(0, 8) RightCorner.Parent = RightPanel
-
-local RightTitle = Instance.new("TextLabel")
-RightTitle.Size = UDim2.new(1, -20, 0, 30)
-RightTitle.Position = UDim2.fromOffset(10, 10)
-RightTitle.BackgroundTransparency = 1
-RightTitle.Text = "INTERFACE"
-RightTitle.Font = Enum.Font.GothamBold
-RightTitle.TextSize = 11
-RightTitle.TextColor3 = Colors.TextDim
-RightTitle.TextXAlignment = Enum.TextXAlignment.Left
-RightTitle.Parent = RightPanel
-
--- Botones visuales del panel derecho
-local function createFakeToggle(text, yPos)
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -20, 0, 25)
-    lbl.Position = UDim2.fromOffset(10, yPos)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = text
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 12
-    lbl.TextColor3 = Colors.Text
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = RightPanel
-    
-    local toggleBg = Instance.new("Frame")
-    toggleBg.Size = UDim2.fromOffset(30, 15)
-    toggleBg.Position = UDim2.new(1, -40, 0, 5)
-    toggleBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    toggleBg.Parent = lbl
-    local tc = Instance.new("UICorner") tc.CornerRadius = UDim.new(1, 0) tc.Parent = toggleBg
-    
-    local dot = Instance.new("Frame")
-    dot.Size = UDim2.fromOffset(11, 11)
-    dot.Position = UDim2.fromOffset(2, 2)
-    dot.BackgroundColor3 = Colors.Text
-    dot.Parent = toggleBg
-    local dc = Instance.new("UICorner") dc.CornerRadius = UDim.new(1, 0) dc.Parent = dot
+local SpeedHandler = {}
+SpeedHandler.__index = SpeedHandler
+function SpeedHandler.new()
+    return setmetatable({ _running=false, _conns=ConnectionBucket.new(), _humanoid=nil, _originalSpeed=nil, _watchConn=nil, _watchedHumanoid=nil }, SpeedHandler)
 end
-
-createFakeToggle("Debug Console", 40)
-createFakeToggle("Streamproof", 75)
-createFakeToggle("Hide From Taskbar", 110)
-
-switchPage(pageConfig)
-print("Gabriel Xiter (Nexus UI + Funciones) cargado.")
+function SpeedHandler:InGame() return HasGameAttribute(LocalPlayer) end
+function SpeedHandler:GetConfiguredSpeed() return math.max(0, tonumber(Config.PlayerCheats.Speed) or 24) end
+function SpeedHandler:CacheOriginal(h)
+    if not h or h == self._humanoid then return end
+    self._humanoid = h; self._originalSpeed = h.WalkSpeed
+end
+function SpeedHandler:GetHumanoid()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then self:CacheOriginal(hum) end
+    return hum
+end
+function SpeedHandler:WatchWalkSpeed(h)
+    if not h or h == self._watchedHumanoid then return end
+    self:Stop            º        
