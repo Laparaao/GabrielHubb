@@ -5,7 +5,7 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local u6 = false
 local u7 = false
-local n1 = 8
+local n1 = 1.5 -- Multiplicador inicial
 local color3 = Color3.fromRGB(0, 255, 0)
 local u10 = false
 local u11 = false
@@ -13,7 +13,7 @@ local u12 = false
 local t1 = {}
 local ScreenGui = Instance.new("ScreenGui")
 
-ScreenGui.Name = "IsaitaHub"
+ScreenGui.Name = "GabrielXiter"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = PlayerGui
@@ -38,7 +38,7 @@ local TextLabel = Instance.new("TextLabel")
 TextLabel.Size = UDim2.new(1, -50, 0, 40)
 TextLabel.Position = UDim2.fromOffset(12, 5)
 TextLabel.BackgroundTransparency = 1
-TextLabel.Text = "IsaitaHub"
+TextLabel.Text = "Gabriel Xiter" -- CAMBIADO AQUÍ
 TextLabel.Font = Enum.Font.GothamBold
 TextLabel.TextSize = 20
 TextLabel.TextColor3 = color3
@@ -84,7 +84,7 @@ local TextLabel2 = Instance.new("TextLabel")
 TextLabel2.Size = UDim2.new(1, -20, 0, 20)
 TextLabel2.Position = UDim2.fromOffset(10, 132)
 TextLabel2.BackgroundTransparency = 1
-TextLabel2.Text = "Tamaño Hitbox: 8"
+TextLabel2.Text = "Tamaño Hitbox: " .. tostring(n1)
 TextLabel2.Font = Enum.Font.Gotham
 TextLabel2.TextSize = 12
 TextLabel2.TextColor3 = color3
@@ -113,195 +113,92 @@ ImageButton.ScaleType = Enum.ScaleType.Fit
 ImageButton.Visible = false
 ImageButton.Parent = ScreenGui
 
-local v31 = nil
-
+-- LÓGICA DEL HITBOX (TORSO)
 local function v32(p3)
-	if p3 == LocalPlayer then
-		return
-	end
-
-	local v33 = not u6
-
-	if v33 then
-		v33 = not u7
-	end
-
-	if v33 then
-		v31(p3)
-
-		return
-	end
+	if p3 == LocalPlayer then return end
 
 	local Character = p3.Character
+	if not Character then return end
 
-	if not Character then
-		v31(p3)
-
-		return
-	end
-
-	local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
 	local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+	if not Humanoid or Humanoid.Health <= 0 then return end
 
-	if not HumanoidRootPart or (not Humanoid or Humanoid.Health <= 0) then
-		v31(p3)
+	-- Buscamos el Torso o UpperTorso
+	local torso = Character:FindFirstChild("Torso") or Character:FindFirstChild("UpperTorso")
+	if not torso then return end
 
+	-- Si el hitbox está apagado, restauramos el tamaño original
+	if not (u6 or u7) then
+		if t1[p3] then
+			torso.Size = t1[p3].OriginalSize
+			torso.Transparency = t1[p3].OriginalTransparency
+			t1[p3] = nil
+		end
 		return
 	end
 
-	local v37 = t1[p3]
-	local Box
-
-	if v37 then
-		Box = v37.Box
-
-		if Box then
-			Box = v37.Box.Parent == Character
-		end
-	else
-		Box = v37
-	end
-
-	if not Box then
-		v31(p3)
-
-		local Part = Instance.new("Part")
-
-		Part.Name = "IsaitaHitbox"
-		Part.Size = Vector3.new(n1, n1, n1)
-		Part.CFrame = HumanoidRootPart.CFrame
-		Part.Color = color3
-		Part.Material = Enum.Material.Neon
-		Part.CanCollide = false
-		Part.CanTouch = false
-		Part.CanQuery = true
-		Part.Massless = true
-		Part.Anchored = false
-		Part.CastShadow = false
-
-		if u7 then
-			Part.Transparency = 1
-		else
-			Part.Transparency = 0.8
-		end
-
-		Part.Parent = Character
-
-		local WeldConstraint = Instance.new("WeldConstraint")
-
-		WeldConstraint.Part0 = HumanoidRootPart
-		WeldConstraint.Part1 = Part
-		WeldConstraint.Parent = Part
-
-		local Highlight = Instance.new("Highlight")
-
-		Highlight.Name = "IsaitaHitboxESP"
-		Highlight.Adornee = Part
-		Highlight.FillColor = color3
-		Highlight.OutlineColor = color3
-		Highlight.FillTransparency = 0.8
-		Highlight.OutlineTransparency = 0
-		Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-		Highlight.Enabled = not u7
-		Highlight.Parent = Part
+	-- Guardamos el tamaño original si no lo hemos hecho
+	if not t1[p3] then
 		t1[p3] = {
-			Box = Part,
-			Highlight = Highlight
+			OriginalSize = torso.Size,
+			OriginalTransparency = torso.Transparency
 		}
-
-		return
 	end
 
-	v37.Box.Size = Vector3.new(n1, n1, n1)
+	local originalSize = t1[p3].OriginalSize
 
+	-- Agrandamos el torso
+	torso.Size = Vector3.new(
+		originalSize.X * n1, 
+		originalSize.Y * n1, 
+		originalSize.Z * n1
+	)
+
+	-- Aplicamos la transparencia (Invisible o no)
 	if u7 then
-		v37.Box.Transparency = 1
-
-		if v37.Highlight then
-			v37.Highlight.Enabled = false
-
-			return
-		else
-			return
-		end
+		torso.Transparency = 1
+	else
+		torso.Transparency = 0
 	end
-
-	v37.Box.Transparency = 0.8
-	v37.Box.Color = color3
-
-	if not v37.Highlight then
-		return
-	end
-
-	v37.Highlight.Enabled = true
-	v37.Highlight.Adornee = v37.Box
-	v37.Highlight.FillColor = color3
-	v37.Highlight.OutlineColor = color3
-	v37.Highlight.FillTransparency = 0.8
-	v37.Highlight.OutlineTransparency = 0
-	v37.Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 end
 
-v31 = function(p4)
-	local v42 = t1[p4]
+-- LIMPIEZA AL SALIR
+local function v31(p4)
+	local data = t1[p4]
+	if not data then return end
 
-	if not v42 then
-		return
+	if p4.Character then
+		local torso = p4.Character:FindFirstChild("Torso") or p4.Character:FindFirstChild("UpperTorso")
+		if torso then
+			torso.Size = data.OriginalSize
+			torso.Transparency = data.OriginalTransparency
+		end
 	end
 
-	if v42.Box then
-		pcall(function()
-			v42.Box:Destroy()
-		end)
-	end
-
-	if not v42.Highlight then
-		t1[p4] = nil
-
-		return
-	end
-
-	pcall(function()
-		v42.Highlight:Destroy()
-	end)
 	t1[p4] = nil
 end
 
+-- BUCLE PRINCIPAL DEL HITBOX
 local function v43()
-	local v44 = not u6
-	local v45
-
-	if not v44 then
-		if not v44 then
-			v45 = Players
-
-			for _, player in ipairs(v45.GetPlayers(v45)) do
-				if player ~= LocalPlayer then
-					v32(player)
-				end
-			end
+	if not (u6 or u7) then
+		for player, data in pairs(t1) do
+			v31(player)
 		end
-
 		return
 	end
 
-	v44 = not u7
-
-	if not v44 then
-		v45 = Players
-
-		for _, player in ipairs(v45.GetPlayers(v45)) do
-			if player ~= LocalPlayer then
-				v32(player)
-			end
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			v32(player)
 		end
 	end
 end
 
 RunService.Heartbeat:Connect(v43)
+
+-- BOTONES DE LA INTERFAZ
 v22.MouseButton1Click:Connect(function()
 	u6 = not u6
-
 	if u6 then
 		u7 = false
 		v22.Text = "Hitbox  •  ON"
@@ -309,16 +206,11 @@ v22.MouseButton1Click:Connect(function()
 	else
 		v22.Text = "Hitbox  •  OFF"
 	end
-
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer then
-			v32(player)
-		end
-	end
+	v43()
 end)
+
 v23.MouseButton1Click:Connect(function()
 	u7 = not u7
-
 	if u7 then
 		u6 = false
 		v22.Text = "Hitbox  •  OFF"
@@ -326,31 +218,24 @@ v23.MouseButton1Click:Connect(function()
 	else
 		v23.Text = "Hitbox invisible  •  OFF"
 	end
-
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer then
-			v32(player)
-		end
-	end
+	v43()
 end)
+
 v25.MouseButton1Click:Connect(function()
-	local v54 = n1 - 1
-
-	n1 = math.max(1, v54)
-	TextLabel2.Text = "Tamaño Hitbox: " .. n1
+	n1 = math.max(1, n1 - 0.1)
+	TextLabel2.Text = "Tamaño Hitbox: " .. string.format("%.1f", n1)
+	v43()
 end)
 
-local function v55()
-	local v56 = n1 + 1
+v26.MouseButton1Click:Connect(function()
+	n1 = math.min(10, n1 + 0.1)
+	TextLabel2.Text = "Tamaño Hitbox: " .. string.format("%.1f", n1)
+	v43()
+end)
 
-	n1 = math.min(45, v56)
-	TextLabel2.Text = "Tamaño Hitbox: " .. n1
-end
-
-v26.MouseButton1Click:Connect(v55)
+-- INFINITE JUMP
 v27.MouseButton1Click:Connect(function()
 	u10 = not u10
-
 	if u10 then
 		v27.Text = "Infinite Jump  •  ON"
 	else
@@ -359,29 +244,19 @@ v27.MouseButton1Click:Connect(function()
 end)
 
 local function v57()
-	if not u10 then
-		return
-	end
-
+	if not u10 then return end
 	local Character = LocalPlayer.Character
-
-	if not Character then
-		return
-	end
-
+	if not Character then return end
 	local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-
-	if not HumanoidRootPart then
-		return
-	end
-
+	if not HumanoidRootPart then return end
 	HumanoidRootPart.AssemblyLinearVelocity = Vector3.new(HumanoidRootPart.AssemblyLinearVelocity.X, 90, HumanoidRootPart.AssemblyLinearVelocity.Z)
 end
 
 UserInputService.JumpRequest:Connect(v57)
+
+-- NO CLIP
 v28.MouseButton1Click:Connect(function()
 	u11 = not u11
-
 	if u11 then
 		v28.Text = "No Clip  •  ON"
 	else
@@ -392,25 +267,21 @@ end)
 local function v60()
 	if u11 then
 		local Character = LocalPlayer.Character
-
 		if Character then
 			for _, descendant in ipairs(Character:GetDescendants()) do
 				if descendant:IsA("BasePart") then
 					descendant.CanCollide = false
 				end
 			end
-
-			return
-		else
-			return
 		end
 	end
 end
 
 RunService.Stepped:Connect(v60)
+
+-- MOVIMIENTO TELA
 v29.MouseButton1Click:Connect(function()
 	u12 = not u12
-
 	if u12 then
 		v29.Text = "Movimiento tela  •  ON"
 	else
@@ -420,71 +291,37 @@ end)
 
 local function v64()
 	local Character = LocalPlayer.Character
-
-	if not Character then
-		return
-	end
-
+	if not Character then return end
 	local Humanoid = Character:FindFirstChildOfClass("Humanoid")
 	local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-
-	if not (Humanoid and HumanoidRootPart) then
-		return
-	end
-
-	if not u12 then
-		return
-	end
-
+	if not (Humanoid and HumanoidRootPart) then return end
+	if not u12 then return end
 	local MoveDirection = Humanoid.MoveDirection
-
-	if not (MoveDirection.Magnitude > 0) then
-		return
-	end
-
+	if not (MoveDirection.Magnitude > 0) then return end
 	local vector3 = Vector3.new(MoveDirection.X, 0, MoveDirection.Z)
-
-	if not (vector3.Magnitude > 0) then
-		return
-	end
-
+	if not (vector3.Magnitude > 0) then return end
 	local Unit = vector3.Unit
-
 	HumanoidRootPart.AssemblyLinearVelocity = Vector3.new(Unit.X * 21, HumanoidRootPart.AssemblyLinearVelocity.Y, Unit.Z * 21)
 	HumanoidRootPart.CFrame = CFrame.lookAt(HumanoidRootPart.Position, HumanoidRootPart.Position + Unit)
 end
 
 RunService.RenderStepped:Connect(v64)
 
+-- CONEXIONES DE JUGADORES
 local function v71(player)
-	if player == LocalPlayer then
-		return
-	end
-
+	if player == LocalPlayer then return end
 	player.CharacterAdded:Connect(function()
 		task.wait(0.5)
-
-		if not (u6 or u7) then
-			return
+		if (u6 or u7) then
+			v32(player)
 		end
-
-		v32(player)
 	end)
-
-	if not player.Character then
-		return
+	if player.Character and (u6 or u7) then
+		task.defer(function()
+			v32(player)
+		end)
 	end
-
-	task.defer(function()
-		if not (u6 or u7) then
-			return
-		end
-
-		v32(player)
-	end)
 end
-
-local v72 = v31
 
 for _, player in ipairs(Players:GetPlayers()) do
 	v71(player)
@@ -492,14 +329,17 @@ end
 
 Players.PlayerAdded:Connect(v71)
 Players.PlayerRemoving:Connect(function(player)
-	v72(player)
+	v31(player)
 end)
+
 TextButton.MouseButton1Click:Connect(function()
 	Frame.Visible = false
 	ImageButton.Visible = true
 end)
+
 ImageButton.MouseButton1Click:Connect(function()
 	Frame.Visible = true
 	ImageButton.Visible = false
 end)
-print("IsaitaHub cargado correctamente")
+
+print("Gabriel Xiter cargado correctamente") -- CAMBIADO AQUÍ
