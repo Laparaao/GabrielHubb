@@ -1,6 +1,4 @@
 -- GABRIELHUB V2
--- Dashboard Neon Green
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
