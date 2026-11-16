@@ -1,230 +1,347 @@
+-- ==========================================
+-- INTERFAZ TIPO NEXUS / FILTR MÉXICO
+-- ==========================================
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local u6 = false
-local u7 = false
-local n1 = 1.5 
-local color3 = Color3.fromRGB(0, 255, 0)
-local t1 = {}
+-- Paleta de colores basada en la imagen
+local Colors = {
+    Background = Color3.fromRGB(22, 22, 22),
+    Sidebar = Color3.fromRGB(28, 28, 28),
+    Panel = Color3.fromRGB(32, 32, 32),
+    Input = Color3.fromRGB(18, 18, 18),
+    Text = Color3.fromRGB(220, 220, 220),
+    TextDim = Color3.fromRGB(120, 120, 120),
+    Accent = Color3.fromRGB(255, 80, 150), -- El rosado/magenta del logo
+    Red = Color3.fromRGB(255, 80, 80),
+    Green = Color3.fromRGB(0, 255, 110)
+}
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GabrielXiter"
+ScreenGui.Name = "NexusClone"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = PlayerGui
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.fromOffset(300, 390)
-Frame.Position = UDim2.new(0.5, -150, 0.5, -195)
-Frame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-Frame.BorderSizePixel = 0
-Frame.Active = true
-Frame.Draggable = true
-Frame.Parent = ScreenGui
+-- Ventana Principal
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.fromOffset(750, 450)
+MainFrame.Position = UDim2.new(0.5, -375, 0.5, -225)
+MainFrame.BackgroundColor3 = Colors.Background
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 12)
-UICorner.Parent = Frame
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
 
-local TextLabel = Instance.new("TextLabel")
-TextLabel.Size = UDim2.new(1, -50, 0, 40)
-TextLabel.Position = UDim2.fromOffset(12, 5)
-TextLabel.BackgroundTransparency = 1
-TextLabel.Text = "Gabriel Xiter"
-TextLabel.Font = Enum.Font.GothamBold
-TextLabel.TextSize = 20
-TextLabel.TextColor3 = color3
-TextLabel.TextXAlignment = Enum.TextXAlignment.Left
-TextLabel.Parent = Frame
+local Stroke = Instance.new("UIStroke")
+Stroke.Color = Color3.fromRGB(50, 50, 50)
+Stroke.Thickness = 1
+Stroke.Parent = MainFrame
 
-local TextButton = Instance.new("TextButton")
-TextButton.Size = UDim2.fromOffset(35, 35)
-TextButton.Position = UDim2.new(1, -42, 0, 5)
-TextButton.BackgroundTransparency = 1
-TextButton.Text = "X"
-TextButton.Font = Enum.Font.GothamBold
-TextButton.TextSize = 18
-TextButton.TextColor3 = Color3.fromRGB(255, 80, 80)
-TextButton.Parent = Frame
+-- Barra Superior (Top Bar)
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+TopBar.BackgroundColor3 = Colors.Background
+TopBar.BackgroundTransparency = 0.5
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
 
-local function createTextButton(p1, p2)
-	local TextButton2 = Instance.new("TextButton")
-	TextButton2.Size = UDim2.new(1, -20, 0, 34)
-	TextButton2.Position = UDim2.fromOffset(10, p2)
-	TextButton2.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
-	TextButton2.BorderSizePixel = 0
-	TextButton2.Text = p1
-	TextButton2.Font = Enum.Font.GothamBold
-	TextButton2.TextSize = 13
-	TextButton2.TextColor3 = color3
-	TextButton2.Parent = Frame
-	local UICorner2 = Instance.new("UICorner")
-	UICorner2.CornerRadius = UDim.new(0, 8)
-	UICorner2.Parent = TextButton2
-	return TextButton2
+local TopBarLine = Instance.new("Frame")
+TopBarLine.Size = UDim2.new(1, 0, 0, 1)
+TopBarLine.Position = UDim2.new(0, 0, 1, 0)
+TopBarLine.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TopBarLine.BorderSizePixel = 0
+TopBarLine.Parent = TopBar
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 200, 1, 0)
+Title.Position = UDim2.fromOffset(15, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "||||| Nexus External"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+Title.TextColor3 = Colors.Accent
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.fromOffset(30, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 2)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "X"
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 14
+CloseBtn.TextColor3 = Colors.Text
+CloseBtn.Parent = TopBar
+
+-- Barra Lateral (Sidebar)
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 180, 1, -35)
+Sidebar.Position = UDim2.new(0, 0, 0, 35)
+Sidebar.BackgroundColor3 = Colors.Sidebar
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = MainFrame
+
+local SidebarCorner = Instance.new("UICorner")
+SidebarCorner.CornerRadius = UDim.new(0, 8)
+SidebarCorner.Parent = Sidebar
+
+-- Contenedor de Pestañas (Tabs)
+local TabContainer = Instance.new("Frame")
+TabContainer.Size = UDim2.new(1, -10, 1, -10)
+TabContainer.Position = UDim2.fromOffset(5, 5)
+TabContainer.BackgroundTransparency = 1
+TabContainer.Parent = Sidebar
+
+local function createCategory(text, yPos)
+    local cat = Instance.new("TextLabel")
+    cat.Size = UDim2.new(1, -20, 0, 20)
+    cat.Position = UDim2.fromOffset(15, yPos)
+    cat.BackgroundTransparency = 1
+    cat.Text = text
+    cat.Font = Enum.Font.GothamBold
+    cat.TextSize = 11
+    cat.TextColor3 = Colors.TextDim
+    cat.TextXAlignment = Enum.TextXAlignment.Left
+    cat.Parent = TabContainer
+    return cat
 end
 
-local v22 = createTextButton("Hitbox  •  OFF", 50)
-local v23 = createTextButton("Hitbox invisible  •  OFF", 91)
-local TextLabel2 = Instance.new("TextLabel")
-TextLabel2.Size = UDim2.new(1, -20, 0, 20)
-TextLabel2.Position = UDim2.fromOffset(10, 132)
-TextLabel2.BackgroundTransparency = 1
-TextLabel2.Text = "Tamaño Hitbox: " .. tostring(n1)
-TextLabel2.Font = Enum.Font.Gotham
-TextLabel2.TextSize = 12
-TextLabel2.TextColor3 = color3
-TextLabel2.Parent = Frame
-
-local v25 = createTextButton("−", 154)
-v25.Size = UDim2.new(0.45, 0, 0, 30)
-local v26 = createTextButton("+", 154)
-v26.Position = UDim2.new(0.55, 0, 0, 154)
-v26.Size = UDim2.new(0.45, 0, 0, 30)
-
-local ImageButton = Instance.new("ImageButton")
-ImageButton.Size = UDim2.fromOffset(60, 60)
-ImageButton.Position = UDim2.fromOffset(15, 160)
-ImageButton.BackgroundTransparency = 1
-ImageButton.BorderSizePixel = 0
-ImageButton.Image = "rbxassetid://98807466984428"
-ImageButton.ScaleType = Enum.ScaleType.Fit
-ImageButton.Visible = false
-ImageButton.Parent = ScreenGui
-
--- ==========================================
--- LÓGICA DEL HITBOX (TORSO CON ANCLAJE)
--- ==========================================
-local function v32(p3)
-	if p3 == LocalPlayer then return end
-	local Character = p3.Character
-	if not Character then return end
-
-	local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-	if not Humanoid or Humanoid.Health <= 0 then return end
-
-	-- Buscamos el Torso (R6) o UpperTorso (R15)
-	local torso = Character:FindFirstChild("Torso") or Character:FindFirstChild("UpperTorso")
-	if not torso then return end
-
-	-- Si se apaga, restauramos
-	if not (u6 or u7) then
-		if t1[p3] then
-			pcall(function()
-				torso.Size = t1[p3].OriginalSize
-				torso.Transparency = t1[p3].OriginalTransparency
-				t1[p3] = nil
-			end)
-		end
-		return
-	end
-
-	-- Guardamos el tamaño original
-	if not t1[p3] then
-		t1[p3] = {
-			OriginalSize = torso.Size,
-			OriginalTransparency = torso.Transparency
-		}
-	end
-
-	local originalSize = t1[p3].OriginalSize
-
-	-- TRUCO ANTI-CONGELAMIENTO:
-	-- En lugar de multiplicar todo el tamaño, multiplicamos X y Z (ancho y profundidad),
-	-- y solo un poco la Y (altura) para que no se separe de las piernas.
-	local newSize = Vector3.new(
-		originalSize.X * n1, 
-		originalSize.Y * (1 + (n1 - 1) * 0.2), -- Crece solo un 20% de lo que crecería en Y
-		originalSize.Z * n1
-	)
-
-	pcall(function()
-		torso.Size = newSize
-		torso.Transparency = u7 and 1 or 0
-	end)
+local function createTab(text, yPos)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 30)
+    btn.Position = UDim2.fromOffset(10, yPos)
+    btn.BackgroundColor3 = Colors.Sidebar
+    btn.BackgroundTransparency = 1
+    btn.Text = "   " .. text
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextColor3 = Colors.Text
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = TabContainer
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+    
+    return btn
 end
 
-local function v31(p4)
-	local data = t1[p4]
-	if not data then return end
-	pcall(function()
-		if p4.Character then
-			local torso = p4.Character:FindFirstChild("Torso") or p4.Character:FindFirstChild("UpperTorso")
-			if torso then
-				torso.Size = data.OriginalSize
-				torso.Transparency = data.OriginalTransparency
-			end
-		end
-	end)
-	t1[p4] = nil
+createCategory("COMBAT", 10)
+local tabAim = createTab("Aim-Assist", 35)
+local tabSilent = createTab("Silent-Aim", 70)
+local tabTrigger = createTab("Trigger-Bot", 105)
+
+createCategory("VISUAL", 145)
+local tabPlayers = createTab("Players", 170)
+local tabMisc = createTab("Misc", 205)
+local tabWorld = createTab("World", 240)
+local tabInventory = createTab("Inventory", 275)
+local tabExploit = createTab("Exploit", 310)
+
+-- Panel Central (Configs)
+local CenterPanel = Instance.new("Frame")
+CenterPanel.Size = UDim2.new(0, 350, 1, -45)
+CenterPanel.Position = UDim2.new(0, 190, 0, 40)
+CenterPanel.BackgroundColor3 = Colors.Panel
+CenterPanel.BorderSizePixel = 0
+CenterPanel.Parent = MainFrame
+
+local CenterCorner = Instance.new("UICorner")
+CenterCorner.CornerRadius = UDim.new(0, 8)
+CenterCorner.Parent = CenterPanel
+
+local CenterTitle = Instance.new("TextLabel")
+CenterTitle.Size = UDim2.new(1, -20, 0, 30)
+CenterTitle.Position = UDim2.fromOffset(10, 10)
+CenterTitle.BackgroundTransparency = 1
+CenterTitle.Text = "CONFIGS"
+CenterTitle.Font = Enum.Font.GothamBold
+CenterTitle.TextSize = 11
+CenterTitle.TextColor3 = Colors.TextDim
+CenterTitle.TextXAlignment = Enum.TextXAlignment.Left
+CenterTitle.Parent = CenterPanel
+
+-- Input Box
+local ConfigInput = Instance.new("TextBox")
+ConfigInput.Size = UDim2.new(1, -20, 0, 30)
+ConfigInput.Position = UDim2.fromOffset(10, 40)
+ConfigInput.BackgroundColor3 = Colors.Input
+ConfigInput.Text = "default"
+ConfigInput.Font = Enum.Font.Gotham
+ConfigInput.TextSize = 13
+ConfigInput.TextColor3 = Colors.Text
+ConfigInput.TextXAlignment = Enum.TextXAlignment.Left
+ConfigInput.PlaceholderText = "Config Name"
+ConfigInput.Parent = CenterPanel
+
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 4)
+InputCorner.Parent = ConfigInput
+
+local function createActionButton(text, x, y, w, h)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.fromOffset(w, h)
+    btn.Position = UDim2.fromOffset(x, y)
+    btn.BackgroundColor3 = Colors.Input
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 11
+    btn.TextColor3 = Colors.Text
+    btn.Parent = CenterPanel
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 4)
+    corner.Parent = btn
+    return btn
 end
 
-local function v43()
-	if not (u6 or u7) then
-		for player, data in pairs(t1) do
-			v31(player)
-		end
-		return
-	end
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer then
-			v32(player)
-		end
-	end
+createActionButton("SAVE CONFIG", 10, 80, 105, 25)
+createActionButton("LOAD CONFIG", 125, 80, 105, 25)
+createActionButton("RESET DEFAULTS", 240, 80, 100, 25)
+
+createActionButton("SET AS DEFAULT", 10, 115, 160, 25)
+createActionButton("DELETE CONFIG", 180, 115, 160, 25)
+
+local NoDefault = Instance.new("TextLabel")
+NoDefault.Size = UDim2.new(1, -20, 0, 20)
+NoDefault.Position = UDim2.fromOffset(10, 150)
+NoDefault.BackgroundTransparency = 1
+NoDefault.Text = "No default config set"
+NoDefault.Font = Enum.Font.Gotham
+NoDefault.TextSize = 11
+NoDefault.TextColor3 = Colors.TextDim
+NoDefault.TextXAlignment = Enum.TextXAlignment.Left
+NoDefault.Parent = CenterPanel
+
+createActionButton("OPEN CONFIG FOLDER", 10, 180, 330, 25)
+
+-- Panel Derecho (Interface)
+local RightPanel = Instance.new("Frame")
+RightPanel.Size = UDim2.new(0, 190, 1, -45)
+RightPanel.Position = UDim2.new(0, 550, 0, 40)
+RightPanel.BackgroundColor3 = Colors.Panel
+RightPanel.BorderSizePixel = 0
+RightPanel.Parent = MainFrame
+
+local RightCorner = Instance.new("UICorner")
+RightCorner.CornerRadius = UDim.new(0, 8)
+RightCorner.Parent = RightPanel
+
+local RightTitle = Instance.new("TextLabel")
+RightTitle.Size = UDim2.new(1, -20, 0, 30)
+RightTitle.Position = UDim2.fromOffset(10, 10)
+RightTitle.BackgroundTransparency = 1
+RightTitle.Text = "INTERFACE"
+RightTitle.Font = Enum.Font.GothamBold
+RightTitle.TextSize = 11
+RightTitle.TextColor3 = Colors.TextDim
+RightTitle.TextXAlignment = Enum.TextXAlignment.Left
+RightTitle.Parent = RightPanel
+
+-- Opciones de la derecha
+local function createRightOption(text, yPos)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -20, 0, 25)
+    lbl.Position = UDim2.fromOffset(10, yPos)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 12
+    lbl.TextColor3 = Colors.Text
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = RightPanel
+    
+    local toggleBg = Instance.new("Frame")
+    toggleBg.Size = UDim2.fromOffset(30, 15)
+    toggleBg.Position = UDim2.new(1, -40, 0, 5)
+    toggleBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    toggleBg.Parent = lbl
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(1, 0)
+    toggleCorner.Parent = toggleBg
+    
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.fromOffset(11, 11)
+    dot.Position = UDim2.fromOffset(2, 2)
+    dot.BackgroundColor3 = Colors.Text
+    dot.Parent = toggleBg
+    
+    local dotCorner = Instance.new("UICorner")
+    dotCorner.CornerRadius = UDim.new(1, 0)
+    dotCorner.Parent = dot
+    
+    return lbl, toggleBg, dot
 end
 
-RunService.Heartbeat:Connect(function()
-	pcall(v43)
+createRightOption("Debug Console", 40)
+createRightOption("Streamproof", 75)
+createRightOption("Hide From Taskbar", 110)
+
+-- Botón de Color de Acento (Accent Color)
+local AccentLbl = Instance.new("TextLabel")
+AccentLbl.Size = UDim2.new(1, -20, 0, 25)
+AccentLbl.Position = UDim2.fromOffset(10, 145)
+AccentLbl.BackgroundTransparency = 1
+AccentLbl.Text = "Accent Color"
+AccentLbl.Font = Enum.Font.Gotham
+AccentLbl.TextSize = 12
+AccentLbl.TextColor3 = Colors.Text
+AccentLbl.TextXAlignment = Enum.TextXAlignment.Left
+AccentLbl.Parent = RightPanel
+
+local ColorContainer = Instance.new("Frame")
+ColorContainer.Size = UDim2.new(1, -20, 0, 20)
+ColorContainer.Position = UDim2.fromOffset(10, 170)
+ColorContainer.BackgroundTransparency = 1
+ColorContainer.Parent = RightPanel
+
+local colorOptions = {
+    Color3.fromRGB(255, 255, 255),
+    Color3.fromRGB(0, 255, 255),
+    Color3.fromRGB(255, 50, 50),
+    Color3.fromRGB(150, 50, 255),
+    Color3.fromRGB(0, 255, 110)
+}
+
+for i, col in ipairs(colorOptions) do
+    local colorBtn = Instance.new("TextButton")
+    colorBtn.Size = UDim2.fromOffset(15, 15)
+    colorBtn.Position = UDim2.fromOffset((i-1)*25, 2)
+    colorBtn.BackgroundColor3 = col
+    colorBtn.Text = ""
+    colorBtn.Parent = ColorContainer
+    
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(1, 0)
+    cCorner.Parent = colorBtn
+end
+
+-- Botón Keybind
+local KeybindBtn = Instance.new("TextButton")
+KeybindBtn.Size = UDim2.new(1, -20, 0, 30)
+KeybindBtn.Position = UDim2.fromOffset(10, 200)
+KeybindBtn.BackgroundColor3 = Colors.Input
+KeybindBtn.Text = "Keybind Interface                       SET"
+KeybindBtn.Font = Enum.Font.Gotham
+KeybindBtn.TextSize = 12
+KeybindBtn.TextColor3 = Colors.Text
+KeybindBtn.TextXAlignment = Enum.TextXAlignment.Left
+KeybindBtn.Parent = RightPanel
+
+local KeybindCorner = Instance.new("UICorner")
+KeybindCorner.CornerRadius = UDim.new(0, 4)
+KeybindCorner.Parent = KeybindBtn
+
+-- Lógica del Botón de Cerrar
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
 end)
 
--- BOTONES
-v22.MouseButton1Click:Connect(function()
-	u6 = not u6
-	if u6 then
-		u7 = false
-		v22.Text = "Hitbox  •  ON"
-		v23.Text = "Hitbox invisible  •  OFF"
-	else
-		v22.Text = "Hitbox  •  OFF"
-	end
-	v43()
-end)
-
-v23.MouseButton1Click:Connect(function()
-	u7 = not u7
-	if u7 then
-		u6 = false
-		v22.Text = "Hitbox  •  OFF"
-		v23.Text = "Hitbox invisible  •  ON"
-	else
-		v23.Text = "Hitbox invisible  •  OFF"
-	end
-	v43()
-end)
-
-v25.MouseButton1Click:Connect(function()
-	n1 = math.max(1, n1 - 0.1)
-	TextLabel2.Text = "Tamaño Hitbox: " .. string.format("%.1f", n1)
-	v43()
-end)
-
-v26.MouseButton1Click:Connect(function()
-	n1 = math.min(10, n1 + 0.1)
-	TextLabel2.Text = "Tamaño Hitbox: " .. string.format("%.1f", n1)
-	v43()
-end)
-
-TextButton.MouseButton1Click:Connect(function()
-	Frame.Visible = false
-	ImageButton.Visible = true
-end)
-
-ImageButton.MouseButton1Click:Connect(function()
-	Frame.Visible = true
-	ImageButton.Visible = false
-end)
-
-print("Gabriel Xiter cargado correctamente")
+print("Nexus External UI cargada correctamente")
